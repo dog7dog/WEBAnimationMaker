@@ -2,10 +2,14 @@
 // Trigger→Animation/Action: JS生成エンジン
 //   InteractionRule[] → 最小限のJSテキスト。
 //   CSSだけでは実現できない「検知」の部分だけを担当する
-//   （クリック検知、画面内進入検知、キー入力検知、状態クラスの付け外し）。
-//   hover(:hover)やload(@keyframes)は純CSSで完結するため、
+//   （クリック・ダブルクリック・画面内進入・キー入力・スクロール量・
+//     一定間隔の検知と、状態クラスの付け外し）。
+//   hover(:hover) / press(:active) / load(@keyframes) は純CSSで完結するため、
 //   ここでは何も出力しない（codegen-css.js が担当）。
 // ══════════════════════════════════════════════════════════════
+
+// 「そのまま addEventListener すればよい」トリガーとDOMイベント名の対応
+const INTERACTION_TRIGGER_DOM_EVENT = { click: 'click', dblclick: 'dblclick' };
 
 function _interactionCssIdent2(value) {
   return String(value || '')
@@ -36,10 +40,12 @@ function generateInteractionJS(rules) {
     const triggerSel = _interactionSelector2(rule.triggerElementId);
     const targetSel = _interactionSelector2(rule.targetId || rule.triggerElementId);
 
-    if (rule.trigger?.type === 'click') {
+    // クリック / ダブルクリック: 対象の状態クラスを付け外しする
+    const domEvent = INTERACTION_TRIGGER_DOM_EVENT[rule.trigger?.type];
+    if (domEvent) {
       lines.push(
         'document.querySelectorAll(' + JSON.stringify(triggerSel) + ').forEach(function (el) {\n' +
-        '  el.addEventListener("click", function () {\n' +
+        '  el.addEventListener(' + JSON.stringify(domEvent) + ', function () {\n' +
         '    var t = document.querySelector(' + JSON.stringify(targetSel) + ');\n' +
         '    if (t) t.classList.toggle(' + JSON.stringify(activeCls) + ');\n' +
         '  });\n' +
@@ -73,6 +79,38 @@ function generateInteractionJS(rules) {
         '    });\n' +
         '  }, { threshold: ' + threshold + ' });\n' +
         '  io.observe(el);\n' +
+        '})();'
+      );
+      return;
+    }
+
+    if (rule.trigger?.type === 'scroll') {
+      // 指定量までスクロールしたら有効、戻したら解除。
+      // 読み込み直後にも一度判定して、途中から始まるページでもズレないようにする。
+      const px = Number(rule.trigger?.params?.px ?? 200);
+      lines.push(
+        '(function () {\n' +
+        '  var t = document.querySelector(' + JSON.stringify(targetSel) + ');\n' +
+        '  if (!t) return;\n' +
+        '  function update() {\n' +
+        '    t.classList.toggle(' + JSON.stringify(activeCls) + ', window.scrollY >= ' + px + ');\n' +
+        '  }\n' +
+        '  window.addEventListener("scroll", update, { passive: true });\n' +
+        '  update();\n' +
+        '})();'
+      );
+      return;
+    }
+
+    if (rule.trigger?.type === 'timer') {
+      const sec = Math.max(0.05, Number(rule.trigger?.params?.sec ?? 2));
+      lines.push(
+        '(function () {\n' +
+        '  var t = document.querySelector(' + JSON.stringify(targetSel) + ');\n' +
+        '  if (!t) return;\n' +
+        '  setInterval(function () {\n' +
+        '    t.classList.toggle(' + JSON.stringify(activeCls) + ');\n' +
+        '  }, ' + Math.round(sec * 1000) + ');\n' +
         '})();'
       );
       return;

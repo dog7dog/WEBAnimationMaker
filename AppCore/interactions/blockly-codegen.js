@@ -15,7 +15,7 @@
 
 // 生成コードが使う小さなヘルパー。命令的なコードを出すときだけ添える。
 const MLC_JS_RUNTIME = [
-  '// Magic Paint ランタイム（クラスを付け外しするだけの小さな補助）',
+  '// ランタイム（クラスの付け外しとページ操作の小さな補助）',
   'function mlcQ(sel) { return document.querySelector(sel); }',
   'function mlcSet(sel, cls, on) {',
   '  var el = mlcQ(sel);',
@@ -28,7 +28,13 @@ const MLC_JS_RUNTIME = [
   '    if (c.indexOf("mlc-active-") === 0) el.classList.remove(c);',
   '  });',
   '}',
-  'function mlcWait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }'
+  'function mlcWait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }',
+  'function mlcScrollTo(sel) {',
+  '  var el = mlcQ(sel);',
+  '  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });',
+  '}',
+  'function mlcScrollTop() { window.scrollTo({ top: 0, behavior: "smooth" }); }',
+  'function mlcOpen(url) { if (url) window.open(url, "_blank", "noopener"); }'
 ].join('\n');
 
 function _mlcJsGen() {
@@ -64,6 +70,20 @@ function registerMlcJsGenerators() {
     const targetId = block.getFieldValue('TARGET_EL');
     if (!targetId) return '';
     return 'mlcReset(' + JSON.stringify(interactionTargetSelector(targetId)) + ');\n';
+  });
+
+  put('mlc_scroll_to', function (block) {
+    const targetId = block.getFieldValue('TARGET_EL');
+    if (!targetId) return '';
+    return 'mlcScrollTo(' + JSON.stringify(interactionTargetSelector(targetId)) + ');\n';
+  });
+
+  put('mlc_scroll_top', function () {
+    return 'mlcScrollTop();\n';
+  });
+
+  put('mlc_open_url', function (block) {
+    return 'mlcOpen(' + JSON.stringify(block.getFieldValue('URL') || '') + ');\n';
   });
 
   // トリガー(帽子)ブロック本体はここでは何も出さない。
@@ -142,6 +162,11 @@ function _mlcIndent(code, pad) {
     .join('\n');
 }
 
+// 図形に直接付けられるトリガーと、対応するDOMイベント
+const MLC_TRIGGER_DOM_EVENT = {
+  click: 'click', dblclick: 'dblclick', hover: 'mouseenter', press: 'mousedown'
+};
+
 // トリガーの種類ごとに、処理をどう起動するかを組み立てる
 function _mlcWrapTrigger(spec, top, body) {
   const inner = _mlcIndent(body, '    ');
@@ -156,6 +181,33 @@ function _mlcWrapTrigger(spec, top, body) {
     return 'document.addEventListener("keydown", async function (e) {\n'
       + '  if (e.key !== ' + JSON.stringify(key) + ') return;\n'
       + _mlcIndent(body, '  ') + '});\n';
+  }
+
+  const params = spec.toTriggerParams ? spec.toTriggerParams(top) : {};
+
+  if (spec.noElement && spec.trigger === 'scroll') {
+    // 通り過ぎるたびに何度も走らないよう、一度発火したら
+    // 指定位置より上へ戻るまで止めておく。
+    const px = Number(params.px ?? 200);
+    return '(function () {\n'
+      + '  var fired = false;\n'
+      + '  function check() {\n'
+      + '    if (window.scrollY < ' + px + ') { fired = false; return; }\n'
+      + '    if (fired) return;\n'
+      + '    fired = true;\n'
+      + '    (async function () {\n'
+      + _mlcIndent(body, '      ')
+      + '    })();\n'
+      + '  }\n'
+      + '  window.addEventListener("scroll", check, { passive: true });\n'
+      + '  check();\n'
+      + '})();\n';
+  }
+
+  if (spec.noElement && spec.trigger === 'timer') {
+    const sec = Math.max(0.05, Number(params.sec ?? 2));
+    return 'setInterval(async function () {\n'
+      + _mlcIndent(body, '  ') + '}, ' + Math.round(sec * 1000) + ');\n';
   }
 
   const sel = interactionTargetSelector(top.getFieldValue('TRIGGER_EL'));
@@ -173,7 +225,7 @@ function _mlcWrapTrigger(spec, top, body) {
       + '})();\n';
   }
 
-  const domEvent = spec.trigger === 'hover' ? 'mouseenter' : 'click';
+  const domEvent = MLC_TRIGGER_DOM_EVENT[spec.trigger] || 'click';
   return 'document.querySelectorAll(' + selJson + ').forEach(function (el) {\n'
     + '  el.addEventListener(' + JSON.stringify(domEvent) + ', async function () {\n'
     + inner

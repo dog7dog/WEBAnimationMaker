@@ -41,24 +41,40 @@ function _interactionStyleEl() {
   return el;
 }
 
-// 生成JSが document に付けたリスナーと、作ったIntersectionObserver。
+// 生成JSが document / window に付けたリスナーと、作ったIntersectionObserver、
+// 動かし始めたタイマー。
 // 要素に付けたリスナーはミラーの作り直しでノードごと消えるが、
-// document に付けたもの(キー入力など)は消えずに積み重なってしまうため、
-// ここで控えておいて貼り直しの前に外す。
+// document や window に付けたもの(キー入力・スクロールなど)は消えずに
+// 積み重なってしまうため、ここで控えておいて貼り直しの前に外す。
 let _interactionDocListeners = [];
 let _interactionObservers = [];
+// window に付けたリスナー（スクロール検知）と setInterval（一定間隔のトリガー）。
+// これらもノードの作り直しでは消えないので、同じように控えて外す。
+let _interactionWinListeners = [];
+let _interactionTimers = [];
 
 function _teardownGeneratedJs() {
   _interactionDocListeners.forEach(([type, fn]) => document.removeEventListener(type, fn));
   _interactionDocListeners = [];
   _interactionObservers.forEach(io => { try { io.disconnect(); } catch (e) { /* noop */ } });
   _interactionObservers = [];
+  _interactionWinListeners.forEach(([host, type, fn]) => host.removeEventListener(type, fn));
+  _interactionWinListeners = [];
+  _interactionTimers.forEach(id => clearInterval(id));
+  _interactionTimers = [];
+}
+
+// プレビューでスクロールするのはページ全体ではなくステージの外枠なので、
+// 生成コードの window.scrollY / window.addEventListener('scroll') は
+// そちらへ向け直す。書き出したページではそのまま window に当たる。
+function _interactionScrollHost() {
+  return document.getElementById('mlc-stage-wrap') || window;
 }
 
 // 生成JSを実行する。
 //   生成されるコード自体は「実サイトへそのまま貼れる自然な形」にしておきたいので
-//   コードには手を入れず、実行時に document と IntersectionObserver だけ
-//   差し替えて、後片付けできるように登録を横取りする。
+//   コードには手を入れず、実行時に document / window / IntersectionObserver /
+//   setInterval だけ差し替えて、後片付けできるように登録を横取りする。
 function _runGeneratedJs(js) {
   _teardownGeneratedJs();
 
@@ -79,7 +95,35 @@ function _runGeneratedJs(js) {
       }
     : undefined;
 
-  new Function('document', 'IntersectionObserver', js)(documentShim, ObserverShim);
+  const windowShim = {
+    addEventListener(type, fn, opts) {
+      const host = type === 'scroll' ? _interactionScrollHost() : window;
+      _interactionWinListeners.push([host, type, fn]);
+      host.addEventListener(type, fn, opts);
+    },
+    get scrollY() {
+      const host = _interactionScrollHost();
+      return host === window ? window.scrollY : host.scrollTop;
+    },
+    get scrollX() {
+      const host = _interactionScrollHost();
+      return host === window ? window.scrollX : host.scrollLeft;
+    },
+    // 「ページの先頭へ戻る」もステージの外枠に向ける
+    scrollTo(...args) { _interactionScrollHost().scrollTo(...args); },
+    // 「リンクを開く」はプレビューでも素直に新しいタブを開く
+    open(...args) { return window.open(...args); }
+  };
+
+  const setIntervalShim = (fn, ms) => {
+    const id = setInterval(fn, ms);
+    _interactionTimers.push(id);
+    return id;
+  };
+
+  new Function('document', 'IntersectionObserver', 'window', 'setInterval', js)(
+    documentShim, ObserverShim, windowShim, setIntervalShim
+  );
 }
 
 // ミラーを作り直した直後に呼ばれ、生成JSを実行してリスナーを貼り直す。

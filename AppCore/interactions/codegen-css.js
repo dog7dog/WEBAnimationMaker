@@ -4,12 +4,16 @@
 //   DOM/グローバル状態に依存しない純粋関数のみを置く
 //
 //   CSS-first判定（詳細はプラン参照）:
-//     load + once  → @keyframes + animation forwards（JS不要）
-//     hover + hold → :hover + transition（JS不要）
-//     click/inview/key + toggle → 状態クラス + transition
+//     load + once        → @keyframes + animation forwards（JS不要）
+//     hover/press + hold → :hover / :active + transition（JS不要）
+//     click等 + toggle   → 状態クラス + transition
 //       （クラスの付け外し自体はJS側 codegen-js.js が担当）
 //
-//   対応アクション: scale / rotate / move / slide / fade / show / hide。
+//   対応アクション:
+//     変形   scale / rotate / move / slide / skew / flip
+//     見た目 blur / brightness / grayscale / saturate / hue / glow
+//     濃さ   fade / show / hide
+//     反復   pulse / spin / float / shake / swing / blink / bounce
 //   出現演出のように開始状態が要るものは params.from に持たせる。
 //   複数ステップ（steps[1]以降）の連続再生は未対応。
 //
@@ -21,6 +25,11 @@
 //   そこでアクションの種類ごとに別々のCSS変数へ書き込み、図形側の
 //   transform で1つに合成する。変数は @property で型を登録してあるので、
 //   種類ごとに違う秒数で transition させられる。
+//   filter（ぼかし・明るさ・白黒…）も同じ作りで合成する。
+//
+//   ── ずっと動く演出 ──
+//   pulse等も同じCSS変数へ書き込む @keyframes として出すので、
+//   「ゆらゆら浮かせながらホバーで拡大」のように他のアクションと共存できる。
 // ══════════════════════════════════════════════════════════════
 
 // 図形idからCSSクラス名として安全な文字列を作る。
@@ -37,20 +46,50 @@ const INTERACTION_TRANSFORM_VARS = [
   ['--mlc-tx', '<length>', '0px'],
   ['--mlc-ty', '<length>', '0px'],
   ['--mlc-rot', '<angle>', '0deg'],
-  ['--mlc-scale', '<number>', '1']
+  ['--mlc-skx', '<angle>', '0deg'],
+  ['--mlc-sky', '<angle>', '0deg'],
+  ['--mlc-scale', '<number>', '1'],
+  ['--mlc-flip-x', '<number>', '1'],
+  ['--mlc-flip-y', '<number>', '1']
 ];
 
 const INTERACTION_TRANSFORM_VALUE =
-  'translate(var(--mlc-tx), var(--mlc-ty)) rotate(var(--mlc-rot)) scale(var(--mlc-scale))';
+  'translate(var(--mlc-tx), var(--mlc-ty)) rotate(var(--mlc-rot))'
+  + ' skew(var(--mlc-skx), var(--mlc-sky))'
+  + ' scale(var(--mlc-scale)) scale(var(--mlc-flip-x), var(--mlc-flip-y))';
+
+// filterを組み立てるCSS変数。transformと同じ考え方で、
+// ぼかし・明るさ・白黒…を種類ごとに別の変数へ書いて1つのfilterに合成する。
+// 初期値はどれも「何もしない」値なので、filterを常に出しても見た目は変わらない。
+const INTERACTION_FILTER_VARS = [
+  ['--mlc-blur', '<length>', '0px'],
+  ['--mlc-bright', '<number>', '1'],
+  ['--mlc-gray', '<number>', '0'],
+  ['--mlc-sat', '<number>', '1'],
+  ['--mlc-hue', '<angle>', '0deg'],
+  ['--mlc-glow', '<length>', '0px']
+];
+
+const INTERACTION_FILTER_VALUE =
+  'blur(var(--mlc-blur)) brightness(var(--mlc-bright)) grayscale(var(--mlc-gray))'
+  + ' saturate(var(--mlc-sat)) hue-rotate(var(--mlc-hue))'
+  + ' drop-shadow(0 0 var(--mlc-glow) rgba(0, 0, 0, 0.55))';
 
 function _interactionIsTransformVar(prop) {
   return INTERACTION_TRANSFORM_VARS.some(v => v[0] === prop);
 }
 
+function _interactionIsFilterVar(prop) {
+  return INTERACTION_FILTER_VARS.some(v => v[0] === prop);
+}
+
+// hold（押している/乗せている間だけ）を純CSSで表せるトリガーと、その擬似クラス
+const INTERACTION_HOLD_PSEUDO = { hover: ':hover', press: ':active' };
+
 // CSS変数を transition/keyframes で補間できるようにする型登録。
 // 未対応のブラウザではこの@ruleごと無視され、変化が瞬間的になるだけ。
-function _interactionPropertyAtRules() {
-  return INTERACTION_TRANSFORM_VARS
+function _interactionPropertyAtRules(varList) {
+  return (varList || [])
     .map(([name, syntax, initial]) => '@property ' + name
       + ' { syntax: "' + syntax + '"; inherits: false; initial-value: ' + initial + '; }')
     .join('\n');
@@ -93,12 +132,89 @@ function _interactionActionsToProps(actions, useFrom) {
         // 透明なだけだとクリックを拾ってしまうので無効化する
         props['pointer-events'] = 'none';
         break;
+      case 'skew':
+        props['--mlc-skx'] = Number(a.params?.dx ?? 0) + 'deg';
+        props['--mlc-sky'] = Number(a.params?.dy ?? 0) + 'deg';
+        break;
+      case 'flip':
+        props['--mlc-flip-x'] = String(Number(a.params?.x ?? 1));
+        props['--mlc-flip-y'] = String(Number(a.params?.y ?? 1));
+        break;
+      case 'blur':
+        props['--mlc-blur'] = Number(a.params?.to ?? 0) + 'px';
+        break;
+      case 'brightness':
+        props['--mlc-bright'] = String(Number(a.params?.to ?? 1));
+        break;
+      case 'grayscale':
+        props['--mlc-gray'] = String(Number(a.params?.to ?? 0));
+        break;
+      case 'saturate':
+        props['--mlc-sat'] = String(Number(a.params?.to ?? 1));
+        break;
+      case 'hue':
+        props['--mlc-hue'] = Number(a.params?.deg ?? 0) + 'deg';
+        break;
+      case 'glow':
+        props['--mlc-glow'] = Number(a.params?.to ?? 0) + 'px';
+        break;
       default:
+        // ずっと動く系(pulse等)はここでは値を1つに決められないので何も出さない。
+        // @keyframes の組み立ては _interactionLoopFrames が担当する。
         break;
     }
   });
 
   return props;
+}
+
+// ずっと繰り返す演出の中身。[パーセント, { プロパティ: 値 }] の並びを返す。
+// 中身はどれもCSS変数なので、transform/filterの合成（他のアクションとの共存）が
+// そのまま効く。1周期の長さは steps[0].duration が決める。
+const INTERACTION_LOOP_FRAMES = {
+  pulse: p => {
+    const to = Number(p?.to ?? 1.1);
+    return [[0, { '--mlc-scale': '1' }], [50, { '--mlc-scale': String(to) }], [100, { '--mlc-scale': '1' }]];
+  },
+  spin: p => {
+    const deg = Number(p?.deg ?? 360);
+    return [[0, { '--mlc-rot': '0deg' }], [100, { '--mlc-rot': deg + 'deg' }]];
+  },
+  float: p => {
+    const d = Number(p?.dist ?? 12);
+    return [[0, { '--mlc-ty': '0px' }], [50, { '--mlc-ty': (-d) + 'px' }], [100, { '--mlc-ty': '0px' }]];
+  },
+  shake: p => {
+    const d = Number(p?.dist ?? 8);
+    return [
+      [0, { '--mlc-tx': '0px' }], [25, { '--mlc-tx': (-d) + 'px' }],
+      [75, { '--mlc-tx': d + 'px' }], [100, { '--mlc-tx': '0px' }]
+    ];
+  },
+  swing: p => {
+    const deg = Number(p?.deg ?? 8);
+    return [
+      [0, { '--mlc-rot': '0deg' }], [25, { '--mlc-rot': deg + 'deg' }],
+      [75, { '--mlc-rot': (-deg) + 'deg' }], [100, { '--mlc-rot': '0deg' }]
+    ];
+  },
+  blink: p => {
+    const to = Number(p?.to ?? 0.2);
+    return [[0, { opacity: '1' }], [50, { opacity: String(to) }], [100, { opacity: '1' }]];
+  },
+  bounce: p => {
+    const d = Number(p?.dist ?? 20);
+    return [
+      [0, { '--mlc-ty': '0px' }], [30, { '--mlc-ty': (-d) + 'px' }],
+      [50, { '--mlc-ty': '0px' }], [70, { '--mlc-ty': (-d * 0.4) + 'px' }],
+      [100, { '--mlc-ty': '0px' }]
+    ];
+  }
+};
+
+// このステップが「ずっと動く」アクションなら、そのアクションを返す
+function _interactionLoopAction(step) {
+  return (step?.actions || []).find(a => a && INTERACTION_LOOP_FRAMES[a.type]) || null;
 }
 
 function _interactionPropsToText(props, sep) {
@@ -135,9 +251,19 @@ function interactionKeyframesName(rule) {
 // （ルールごとに出すと transition の秒数が後勝ちで壊れるため）。
 function _interactionTargetEntry(map, sel) {
   if (!map.has(sel)) {
-    map.set(sel, { sel, base: {}, transitions: [], transitioned: new Set(), animations: [], usesTransform: false });
+    map.set(sel, {
+      sel, base: {}, transitions: [], transitioned: new Set(), animations: [],
+      usesTransform: false, usesFilter: false
+    });
   }
   return map.get(sel);
+}
+
+// この宣言の集まりが transform / filter のどちらの合成を必要とするか記録する
+function _interactionNoteVarUse(entry, props) {
+  const keys = Object.keys(props || {});
+  if (keys.some(_interactionIsTransformVar)) entry.usesTransform = true;
+  if (keys.some(_interactionIsFilterVar)) entry.usesFilter = true;
 }
 
 function _interactionAddTransition(entry, prop, timing) {
@@ -157,16 +283,43 @@ function generateInteractionCSS(rules) {
     const step = rule.steps && rule.steps[0];
     if (!step) return;
 
-    const props = _interactionActionsToProps(step.actions);
-    if (!Object.keys(props).length) return;
-
     const sel = _interactionSelector(rule.targetId || rule.triggerElementId);
-    const entry = _interactionTargetEntry(targets, sel);
-    if (Object.keys(props).some(_interactionIsTransformVar)) entry.usesTransform = true;
-
     const timing = (Number(step.duration) || 0.3) + 's '
       + (step.easing || 'ease') + ' '
       + (Number(step.delay) || 0) + 's';
+
+    // ── ずっと繰り返す演出 ──
+    //   @keyframes + infinite。どこに animation を置くかはトリガー次第で、
+    //   「ページ表示なら最初からずっと」「マウスを乗せている間だけ」
+    //   「クリックで開始/停止」を同じ仕組みで書き分ける。
+    const loopAction = _interactionLoopAction(step);
+    if (loopAction) {
+      const entry = _interactionTargetEntry(targets, sel);
+      const frames = INTERACTION_LOOP_FRAMES[loopAction.type](loopAction.params || {});
+      frames.forEach(([, fprops]) => _interactionNoteVarUse(entry, fprops));
+
+      const kfName = interactionKeyframesName(rule);
+      keyframeBlocks.push('@keyframes ' + kfName + ' {\n'
+        + frames.map(([pct, fprops]) => '  ' + pct + '% { ' + _interactionPropsToText(fprops) + ' }').join('\n')
+        + '\n}');
+
+      const animation = kfName + ' ' + timing + ' infinite';
+      const holdPseudo = INTERACTION_HOLD_PSEUDO[rule.trigger?.type];
+      if (rule.toggleMode === 'hold' && holdPseudo) {
+        stateBlocks.push(sel + holdPseudo + ' { animation: ' + animation + '; }');
+      } else if (rule.toggleMode === 'toggle') {
+        stateBlocks.push(sel + '.' + interactionActiveClass(rule) + ' { animation: ' + animation + '; }');
+      } else {
+        entry.animations.push(animation);
+      }
+      return;
+    }
+
+    const props = _interactionActionsToProps(step.actions);
+    if (!Object.keys(props).length) return;
+
+    const entry = _interactionTargetEntry(targets, sel);
+    _interactionNoteVarUse(entry, props);
 
     if (rule.toggleMode === 'once') {
       // load等: 初回発火で再生し完了状態を維持する。
@@ -186,7 +339,9 @@ function generateInteractionCSS(rules) {
     // 出現演出(フェードイン/スライドイン)は開始状態を図形そのものに置く。
     // ここを出さないと「最初から見えている」ままになり、何も起きない。
     if (_interactionHasFrom(step)) {
-      Object.assign(entry.base, _interactionActionsToProps(step.actions, true));
+      const fromProps = _interactionActionsToProps(step.actions, true);
+      _interactionNoteVarUse(entry, fromProps);
+      Object.assign(entry.base, fromProps);
     }
 
     Object.keys(props).forEach(prop => {
@@ -194,9 +349,10 @@ function generateInteractionCSS(rules) {
       _interactionAddTransition(entry, prop, timing);
     });
 
-    if (rule.trigger?.type === 'hover' && rule.toggleMode === 'hold') {
-      // 純CSSの :hover。JS不要、離すと自動で戻る。
-      stateBlocks.push(sel + ':hover { ' + _interactionPropsToText(props) + ' }');
+    const holdPseudo = INTERACTION_HOLD_PSEUDO[rule.trigger?.type];
+    if (rule.toggleMode === 'hold' && holdPseudo) {
+      // 純CSSの :hover / :active。JS不要、離すと自動で戻る。
+      stateBlocks.push(sel + holdPseudo + ' { ' + _interactionPropsToText(props) + ' }');
       return;
     }
 
@@ -212,6 +368,7 @@ function generateInteractionCSS(rules) {
 
   const baseBlocks = [];
   let anyTransform = false;
+  let anyFilter = false;
 
   targets.forEach(entry => {
     // 変数の初期値 → 開始状態(from)で上書き、の順に畳んでから宣言にする
@@ -219,12 +376,19 @@ function generateInteractionCSS(rules) {
     if (entry.usesTransform) {
       INTERACTION_TRANSFORM_VARS.forEach(([name, , initial]) => { values[name] = initial; });
     }
+    if (entry.usesFilter) {
+      INTERACTION_FILTER_VARS.forEach(([name, , initial]) => { values[name] = initial; });
+    }
     Object.assign(values, entry.base);
 
     const decls = Object.entries(values).map(([k, v]) => k + ': ' + v + ';');
     if (entry.usesTransform) {
       anyTransform = true;
       decls.push('transform: ' + INTERACTION_TRANSFORM_VALUE + ';');
+    }
+    if (entry.usesFilter) {
+      anyFilter = true;
+      decls.push('filter: ' + INTERACTION_FILTER_VALUE + ';');
     }
     if (entry.transitions.length) decls.push('transition: ' + entry.transitions.join(', ') + ';');
     if (entry.animations.length) decls.push('animation: ' + entry.animations.join(', ') + ';');
@@ -239,7 +403,10 @@ function generateInteractionCSS(rules) {
   });
 
   const out = [];
-  if (anyTransform) out.push(_interactionPropertyAtRules());
+  const usedVars = []
+    .concat(anyTransform ? INTERACTION_TRANSFORM_VARS : [])
+    .concat(anyFilter ? INTERACTION_FILTER_VARS : []);
+  if (usedVars.length) out.push(_interactionPropertyAtRules(usedVars));
   if (keyframeBlocks.length) out.push(keyframeBlocks.join('\n'));
   out.push(baseBlocks.join('\n'));
   if (stateBlocks.length) out.push(stateBlocks.join('\n'));
