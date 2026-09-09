@@ -1,0 +1,14 @@
+{
+  "id": "cannon_physics",
+  "name": "物理演算 (Cannon.js) MOD",
+  "version": "1.0.0",
+  "level": 2,
+  "enabled": true,
+  "description": "cannon-es による2D物理シミュレーション。四角形・円を「剛体」「床」としてタグ付けし、重力・衝突を再生できます。",
+  "scripts": [
+    "main.js"
+  ],
+  "styles": [
+    "style.css"
+  ]
+}

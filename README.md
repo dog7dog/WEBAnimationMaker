@@ -1,0 +1,252 @@
+# 🎨 Magic Paint 3.1
+
+**Magic Paint** は、ブラウザ上で動作するオープンな2Dアニメーション・イラスト制作ツールです。
+
+HTML5 Canvas をベースに、タイムラインアニメーション・レイヤー・MODシステムを搭載し、さらに **Three.js（WebGL）** による3D描画にも対応しています。
+
+Magic Paintは、「誰でも自由に作品や拡張機能を作れること」を目標に開発されています。
+
+---
+
+# 📸 スクリーンショット
+
+> ※ スクリーンショットは後日追加予定
+
+```
+docs/images/screenshot.png
+```
+
+---
+
+# ✨ 主な機能
+
+## 🖌 描画
+
+- ペンツール
+- ブラシツール
+- 消しゴム
+- 線
+- 四角形
+- 円
+- 三角形
+- 多角形
+- 塗りつぶし
+
+---
+
+## 🎬 アニメーション
+
+- タイムライン
+- キーフレーム
+- フレーム編集
+- プレビュー
+
+---
+
+## 📂 レイヤー
+
+- レイヤー追加
+- レイヤーフォルダ
+- レイヤーカラー
+- レイヤーロック
+- 表示 / 非表示
+- ドラッグによる並び替え
+- Three.jsオブジェクト対応
+
+---
+
+## 🌐 Three.js (WebGL)
+
+- WebGL描画
+- Three.js統合
+- 2D・3D共通レイヤー
+
+---
+
+## 🤖 AI
+
+- AIアシスタント（チャット形式）
+- 複数プロバイダー対応（OpenAI / Gemini / Claude / Grok を切り替え）
+- AIによるCanvas API生成（アニメーションプリセット：星空・花火・雪・炎・波・パーティクル 等）
+- AIによるThree.jsコード生成
+- 生成コードのプレビュー・危険ワードチェック
+- 生成コードの適用 / MOD化 / エディタ送り
+- キャンバス画像の添付（Vision）
+- 会話履歴・使用統計
+
+サーバーは不要です。ブラウザから各社のAPIへ直接リクエストし、
+APIキー・会話履歴・使用統計はブラウザ内（localStorage）に保存します。
+
+### 動作確認状況
+
+ブラウザから直接APIを叩くため、各社がブラウザ由来のリクエスト（CORS）を
+許可しているかどうかで動くかが決まります。実際のAPIキーで確認できたものは以下のとおりです。
+
+|プロバイダー|状況|
+|----|----|
+|Gemini|✅ 確認済み|
+|OpenAI|未確認|
+|Claude|未確認（ブラウザ直接呼び出し用のヘッダを送っています）|
+|Grok|未確認|
+
+「未確認」は動かないという意味ではなく、まだ実キーで試していないという意味です。
+試したらこの表を更新してください。接続できない場合は
+チャット欄にCORSの可能性を含むエラーが表示されます。
+
+> ⚠ **APIキーの取り扱い**
+> キーはブラウザに平文で保存されます。同じブラウザを使える人と、
+> このページで動くコード（インストールしたMODを含む）からは読めてしまいます。
+> 共有端末では使わず、使い終わったら設定画面から削除してください。
+> また `file://` で開くとAPIへのリクエストがブラウザに拒否されるため、
+> AI機能を使うときはローカルサーバー経由で開いてください。
+
+---
+
+## 📦 エクスポート
+
+- PNG
+- 透明背景PNG
+- レイヤー対応
+- Three.jsを含めた書き出し
+
+---
+
+## 🔌 MODシステム
+
+Magic PaintはMODに対応しています。
+MODはZIPファイルをローカルからインストールして使います
+（ツールバーの「MOD」→「MODをインストール」）。
+インストールしたMODはブラウザ内に保存され、次回以降も読み込まれます。
+
+同梱のサンプルMODは `mods/` にZIPで置いてあります。
+
+### MOD API
+
+- createLayer()
+- registerTool()
+- registerBrush()
+- registerShape()
+- addObject()
+- registerRenderer()
+- registerMod()
+- libraries.load() / libraries.declare() / libraries.get() / libraries.has() / libraries.list()（外部ライブラリの登録・利用）
+
+---
+
+## 🧩 MOD SDK
+
+`docs/` 以下にドキュメントサイトとして用意しています。
+
+- [概要](docs/overview.html) / [チュートリアル](docs/tutorial.html) / [APIリファレンス](docs/api.html)
+- API Reference（`docs/MOD_API_REFERENCE.md`）
+- 開発ガイド（`docs/MOD_DEVELOPMENT_GUIDE.md`）
+- サンプルMOD（`mods/webgl_threejs`）
+
+---
+
+# 📁 ディレクトリ構成
+
+```text
+AppCore/
+├── ai/           ... AIアシスタント
+├── canvas/       ... 描画・図形・DOMミラー
+├── core/         ... 状態・イベント・履歴
+├── export/       ... サイト書き出し
+├── features/     ... 各種機能モジュール
+├── interactions/ ... Trigger→Action（ブロック・CSS/JS生成）
+├── io/           ... プロジェクト保存/読み込み
+├── mod/          ... MOD API・ローダー
+└── ui/           ... ツールバー・パネル・テキストエディタ
+
+mods/       ... 同梱サンプルMOD
+docs/       ... MOD SDK ドキュメント
+index.html
+style.css
+README.md
+```
+
+---
+
+# 🚀 起動方法
+
+静的サイトとして動作します。サーバーは不要です。
+
+## そのまま開く
+
+`index.html` をブラウザで開くだけで動きます。
+
+## ローカルサーバー経由で開く（推奨）
+
+一部の機能（MODのZIPインストールなど）はブラウザの制約で
+`file://` では動かないことがあるため、簡易サーバー経由を推奨します。
+
+```bash
+python3 -m http.server 8000
+```
+
+ブラウザで
+
+```
+http://localhost:8000
+```
+
+を開いてください。
+
+> `app.py` / `ai_api.py`（Flask）は以前のAIバックエンドの名残です。
+> AI機能もブラウザだけで動くようになったので、起動する必要はありません。
+
+---
+
+# 🌎 対応ブラウザ
+
+推奨
+
+- Google Chrome
+- Microsoft Edge
+- Firefox
+
+最新版を推奨します。
+
+---
+
+# ⌨ ショートカット
+
+|キー|機能|
+|----|----|
+|Ctrl + Z|Undo|
+|Ctrl + Shift + Z|Redo|
+|Delete|削除|
+|Ctrl + C|コピー|
+|Ctrl + V|貼り付け|
+
+---
+
+# 📚 今後の予定
+
+- AppCore配布方式改善（ES Modules化）
+- AI画像編集支援
+
+---
+
+# 🤝 コントリビュート
+
+バグ報告・改善案・要望は Issue よりお願いします。
+
+MODの開発も歓迎します。
+
+---
+
+# 📄 ライセンス
+
+Copyright © 2026 Magic Paint Project.
+
+All Rights Reserved.
+
+---
+
+# ⭐ Magic Paint
+
+> Create your imagination.
+>
+> **Canvas. Animation. WebGL. AI.**
+

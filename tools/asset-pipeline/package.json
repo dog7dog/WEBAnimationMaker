@@ -1,0 +1,12 @@
+{
+  "name": "asset-pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compress": "node compress-assets.mjs"
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "sharp": "^0.33.5"
+  }
+}

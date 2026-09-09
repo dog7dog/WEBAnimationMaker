@@ -1,0 +1,17 @@
+.rp-btn[data-mod-brush="rainbow_brush"] {
+  border-color: transparent;
+  background-image:
+    linear-gradient(#1e1e1e, #1e1e1e),
+    linear-gradient(90deg, #ff3b3b, #ffbb33, #b6ff33, #33ffe0, #338bff, #a233ff);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border: 1px solid transparent;
+}
+
+.rp-btn[data-mod-brush="rainbow_brush"]:hover {
+  filter: brightness(1.2);
+}
+
+.rp-btn[data-mod-brush="rainbow_brush"].active {
+  filter: brightness(1.3);
+}

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Magic PaintのMOD・JavaScript API リファレンスとファイル構成ガイド">
+  <title>MOD API - Magic Paint Docs</title>
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="overview.html">Magic Paint Docs</a>
+      <nav class="tabs" aria-label="ドキュメント">
+        <a href="overview.html">概要</a>
+        <a href="tutorial.html">チュートリアル</a>
+        <a class="active" href="api.html" aria-current="page">API</a>
+      </nav>
+      <a class="app-link" href="../index.html">アプリへ戻る</a>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+    <nav class="doc-toc" aria-label="ページ内目次">
+      <div class="doc-toc-group">
+        <div class="doc-toc-title">はじめに</div>
+        <a href="#mod-toha">MODとは</a>
+        <a href="#file-structure">ファイル構成</a>
+        <a href="#quickstart">クイックスタート</a>
+      </div>
+      <div class="doc-toc-group">
+        <div class="doc-toc-title">APIリファレンス</div>
+        <a class="sub" href="#api-basic">基本</a>
+        <a class="sub" href="#api-registerMod">registerMod</a>
+        <a class="sub" href="#api-registerTool">registerTool</a>
+        <a class="sub" href="#api-registerBrush">registerBrush</a>
+        <a class="sub" href="#api-registerShapeType">registerShapeType</a>
+        <a class="sub" href="#api-addShape">addShape</a>
+        <a class="sub" href="#api-getSelected">getSelected</a>
+        <a class="sub" href="#api-setSelectedPatch">setSelectedPatch</a>
+        <a class="sub" href="#api-redraw">redraw</a>
+        <a class="sub" href="#api-registerUI">registerUI</a>
+        <a class="sub" href="#api-registerFileMenuItem">registerFileMenuItem</a>
+        <a class="sub" href="#api-createLayer">createLayer</a>
+        <a class="sub" href="#api-getLayers">getLayers 系</a>
+        <a class="sub" href="#api-addObject">addObject 系</a>
+        <a class="sub" href="#api-registerThreeRenderer">registerThreeRenderer</a>
+        <a class="sub" href="#api-util">ユーティリティ</a>
+        <a class="sub" href="#api-getObjectsBy">getObjectsBy 系</a>
+      </div>
+      <div class="doc-toc-group">
+        <div class="doc-toc-title">実践</div>
+        <a href="#patterns">よくあるパターン</a>
+        <a href="#checklist">チェックリスト</a>
+        <a href="#samples">サンプルMOD</a>
+      </div>
+    </nav>
+
+    <main class="doc-content">
+      <h1 class="page-title">MOD API</h1>
+      <p class="lead"><code>window.AnimationApp</code> が Magic Paint の公開APIです。MOD の <code>main.js</code> 内で <code>const api = window.AnimationApp;</code> として参照し、図形・ツール・UIなどを自由に追加できます。このページではMODのファイル構成から全APIリファレンスまでをまとめて説明します。</p>
+
+      <section id="mod-toha">
+        <h2>MODとは</h2>
+        <p>MOD（モッド）は、Magic Paint 本体を書き換えずに機能を追加できる小さな拡張パッケージです。<code>mods/</code> フォルダに置いた JavaScript / JSON / CSS が起動時に読み込まれ、<code>window.AnimationApp</code> という共通APIを通じてエディタと連携します。</p>
+        <p>ゲームのMODと同じ考え方で、有効/無効の切り替えや複数MODの併用ができ、保存したプロジェクト（<code>.mlc</code>）にも図形データとして残ります。</p>
+        <div class="feature-list">
+          <article class="feature-item"><h3>カスタム図形</h3><p>独自の描画ロジックを持つ図形タイプを追加できます。</p></article>
+          <article class="feature-item"><h3>カスタムツール</h3><p>右パネルにツールボタンを追加し、マウス操作を乗っ取れます。</p></article>
+          <article class="feature-item"><h3>カスタムブラシ</h3><p>ストローク描画を完全にコントロールするブラシを追加できます。</p></article>
+          <article class="feature-item"><h3>カスタムUI</h3><p>top / right / bottom / left / editor-top エリアにHTMLパネルを追加できます。</p></article>
+          <article class="feature-item"><h3>ファイルメニュー拡張</h3><p>「File」メニューに独自の書き出し・読み込み項目を追加できます。</p></article>
+          <article class="feature-item"><h3>Three.js統合</h3><p>WebGLレンダラーを2Dレイヤーと同じ管理下（表示/ロック/順序）に置けます。</p></article>
+        </div>
+      </section>
+
+      <section id="file-structure">
+        <h2>ファイル構成</h2>
+        <p>MODは <code>mods/</code> 以下に、MODのIDと同じ名前のフォルダとして配置します。最小構成は次の3ファイルです。</p>
+
+        <div class="file-tree">
+          <div>mods/</div>
+          <div>└─ <span class="dir">my_mod/</span> <span class="comment">← MODのIDと同じ名前にする</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;├─ mod.json <span class="comment">← 必須。メタデータと読み込むファイルのリスト</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;├─ main.js <span class="comment">← 必須。エントリポイント</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;└─ style.css <span class="comment">← オプション</span></div>
+        </div>
+        <div class="note">MOD IDに使えるのはアルファベット・数字・アンダースコアのみです。フォルダ名・<code>mod.json</code> の <code>id</code>・<code>registerMod()</code> に渡す <code>id</code> はすべて一致させてください。</div>
+
+        <h3 id="mod-json">mod.json</h3>
+        <p>MODのメタデータと、読み込むファイルの一覧を書くマニフェストです。Magic Paint はこのファイルを読んでMOD一覧に表示します。</p>
+        <pre><code>{
+  "id": "my_mod",
+  "name": "My MOD",
+  "version": "1.0.0",
+  "level": 1,
+  "enabled": true,
+  "description": "説明",
+  "scripts": ["main.js"],
+  "styles": []
+}</code></pre>
+        <table class="api-table">
+          <thead><tr><th>フィールド</th><th>型</th><th>説明</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>string</td><td>システム内でユニークな識別子。<code>mods/</code> 内のフォルダ名と一致させる</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>Modsパネルや設定画面に表示される名前</td></tr>
+            <tr><td><code>version</code></td><td>string</td><td>セマンティックバージョン（例: <code>1.0.0</code>）</td></tr>
+            <tr><td><code>level</code></td><td>number</td><td>権限レベル。将来の権限管理用フィールドで、現在は <code>1</code> 固定</td></tr>
+            <tr><td><code>enabled</code></td><td>boolean</td><td><code>false</code> にするとサーバーがこのMODを読み込まない</td></tr>
+            <tr><td><code>description</code></td><td>string</td><td>Modsパネルに表示される説明文</td></tr>
+            <tr><td><code>scripts</code></td><td>string[]</td><td>読み込むJSファイルのリスト（配列の順番どおりに実行される）</td></tr>
+            <tr><td><code>styles</code></td><td>string[]</td><td>読み込むCSSファイルのリスト（省略可）</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="main-js">main.js</h3>
+        <p>MODの実処理を書くエントリポイントです。即時関数で囲んでグローバル変数の汚染を防ぎ、まず <code>api.registerMod()</code> を呼んでシステムに存在を知らせるのが基本形です。</p>
+        <pre><code>(function () {
+  const api = window.AnimationApp;
+  if (!api) return;          // Magic Paint 以外の環境対策
+
+  api.registerMod({
+    id: "my_mod",
+    name: "My MOD",
+    version: "1.0.0",
+    description: "説明"
+  });
+
+  // ここから機能を追加する（registerShapeType / registerTool など）
+})();</code></pre>
+        <div class="note"><code>if (!api) return;</code> を入れておくと、Magic Paint 以外の環境で誤って読み込まれてもエラーになりません。</div>
+
+        <h3 id="loading">読み込みの仕組み</h3>
+        <ol class="steps-list">
+          <li>Magic Paint 起動時に <code>/api/mods</code> からMOD一覧を取得します。</li>
+          <li><code>enabled: true</code> のMODについて、<code>scripts</code> に書かれたJSファイルを <code>&lt;script&gt;</code> タグとして動的に読み込みます。</li>
+          <li>各 <code>main.js</code> が実行され、内部で <code>api.registerMod()</code> が呼ばれた時点でそのMODがシステムに登録されます。</li>
+        </ol>
+        <p>MODの有効/無効は、上部ツールバーの「Mods」ボタンから切り替えられます。無効化してもファイルは削除されません。</p>
+
+        <h3 id="save-data">保存データへの影響</h3>
+        <p><code>addShape()</code> で追加した図形は、通常の図形と同じように <code>.mlc</code> プロジェクトファイルへ保存されます。</p>
+        <div class="note">再読み込み時にそのMODが無効化されていると、図形タイプが未登録のまま読み込まれます（<strong>データ自体は失われません</strong>）。保存データにはMODの識別子が記録されるため、必要なMODが不足している場合はMagic Paintが警告を表示します。</div>
+      </section>
+
+      <section id="quickstart">
+        <h2>クイックスタート</h2>
+        <p>実際に手を動かして最初のMODを作る手順です。完成例は <code>mods/sample_shape/</code> を参照してください。</p>
+
+        <div class="step">
+          <div class="step-number">1</div>
+          <div><h3>フォルダを作る</h3><p><code>mods/my_mod/</code> のように、MOD IDと同じ名前のフォルダを作成し、中に <code>mod.json</code> と <code>main.js</code> を用意します。</p></div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div><h3>mod.json を書く</h3><p>上記の最小構成をコピーし、<code>id</code> / <code>name</code> / <code>description</code> を自分のMODに合わせて書き換えます。</p></div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div><h3>main.js に registerMod() を書く</h3><p>即時関数の先頭で <code>api.registerMod()</code> を呼びます。これを呼ばないとMODがシステムに認識されません。</p></div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div><h3>図形・ツールを登録する</h3><p><code>registerShapeType()</code> → <code>registerTool()</code> の順で呼ぶのが安全です。両方とも <code>registerMod()</code> の後に呼んでください。複数の図形タイプ・複数のツールを登録することもできます。</p></div>
+        </div>
+        <div class="step">
+          <div class="step-number">5</div>
+          <div><h3>マウス操作を実装する</h3><p>キャンバス要素にイベントリスナーを追加し、<code>api.activeModTool?.id</code> で自分のツールが選択中か確認してから処理します（下記「よくあるパターン」も参照）。</p></div>
+        </div>
+        <div class="step">
+          <div class="step-number">6</div>
+          <div><h3>Magic Paintで有効化する</h3><p>Magic Paintを起動し、上部バーの「Mods」ボタンをクリック。作成したMODの名前が一覧に出ていれば認識されています。有効化して「適用」をクリックすると右パネルにボタンが追加されます。</p></div>
+        </div>
+        <div class="note">認識されない場合は、ブラウザで <code>/api/mods</code> を開いてレスポンスを確認してください。<code>mod.json</code> のJSONが壊れているとサーバーが無視することがあります。</div>
+      </section>
+
+      <section id="api-reference-intro">
+        <h2>APIリファレンス</h2>
+        <p>ここからは <code>window.AnimationApp</code>（<code>api</code>）が提供する全メソッドを一つずつ説明します。まずは <code>const api = window.AnimationApp;</code> で参照を取得してください。</p>
+        <div class="method-nav">
+          <a href="#api-registerMod">registerMod</a>
+          <a href="#api-registerTool">registerTool</a>
+          <a href="#api-registerBrush">registerBrush</a>
+          <a href="#api-registerShapeType">registerShapeType</a>
+          <a href="#api-addShape">addShape</a>
+          <a href="#api-getSelected">getSelected</a>
+          <a href="#api-setSelectedPatch">setSelectedPatch</a>
+          <a href="#api-redraw">redraw</a>
+          <a href="#api-registerUI">registerUI</a>
+          <a href="#api-registerFileMenuItem">registerFileMenuItem</a>
+          <a href="#api-createLayer">createLayer</a>
+          <a href="#api-getLayers">getLayers</a>
+          <a href="#api-addObject">addObject</a>
+          <a href="#api-registerThreeRenderer">registerThreeRenderer</a>
+          <a href="#api-util">toast / setStatus</a>
+          <a href="#api-getObjectsBy">getObjectsBy*</a>
+        </div>
+      </section>
+
+      <section id="api-basic">
+        <h4 class="api-cat">基本</h4>
+        <p>全てのAPI呼び出しの起点になる参照です。<code>main.js</code> の一番上で取得してください。Magic Paint 以外の環境（例: テスト用の素のブラウザ）では <code>undefined</code> になるため、<code>if (!api) return;</code> で防御するのが安全です。</p>
+        <pre><code>const api = window.AnimationApp;</code></pre>
+      </section>
+
+      <section id="api-registerMod">
+        <h4 class="api-cat">登録系</h4>
+        <h3>registerMod(mod)</h3>
+        <p>MODをシステムに登録します。<strong>main.jsの先頭で必ず呼んでください。</strong>これを呼ぶまでMagic Paintはこのスクリプトを「MOD」として認識しません。<code>id</code>・<code>name</code>・<code>version</code>・<code>description</code> は<code>mod.json</code>の内容と一致させておくと管理が楽になります。</p>
+        <pre><code>api.registerMod({
+  id: "my_mod",          // 必須。ユニークな識別子
+  name: "My MOD",        // 表示名
+  version: "1.0.0",
+  description: "説明文"
+});</code></pre>
+      </section>
+
+      <section id="api-registerTool">
+        <h3>registerTool(tool)</h3>
+        <p>右パネルの「操作」エリアにツールボタンを追加します。ユーザーがボタンを押すとそのツールがアクティブになり、以後のキャンバス操作をMOD側で乗っ取れるようになります。</p>
+        <pre><code>api.registerTool({
+  id: "my_tool",         // 必須
+  name: "マイツール",    // ボタンの title に表示
+  icon: "◆"             // ボタン内 HTML（絵文字・HTMLどちらも可）
+});</code></pre>
+        <p>自分のツールが現在アクティブかどうかは、マウスイベントのハンドラ内で次のように確認します。アクティブでない場合は何もせず抜けるのが基本パターンです。</p>
+        <pre><code>if (api.activeModTool?.id === "my_tool") { ... }</code></pre>
+      </section>
+
+      <section id="api-registerBrush">
+        <h3>registerBrush(brush)</h3>
+        <p>カスタムブラシを登録します。<code>onStart</code> / <code>onMove</code> / <code>onEnd</code> の3つのコールバックで、ストロークの開始・移動・終了それぞれのCanvas描画を自分でコントロールできます。</p>
+        <pre><code>api.registerBrush({
+  id: "my_brush",
+  name: "マイブラシ",
+  icon: "🖌",
+  onStart(ctx, point, shape) { ... },
+  onMove(ctx, point, shape)  { ... },
+  onEnd(ctx, point, shape)   { ... }
+});</code></pre>
+        <p><code>point</code> は <code>{ x, y, pressure }</code> の形で渡されます。<code>pressure</code> は筆圧対応デバイスでの筆圧値（0〜1、非対応デバイスでは1）です。</p>
+      </section>
+
+      <section id="api-registerShapeType">
+        <h3>registerShapeType(type, renderer)</h3>
+        <p>独自の図形タイプを登録します。図形1つぶんの「描画・当たり判定・移動・リサイズ・書き出し」をまとめて定義するAPIで、MODの中心となる機能です。<code>draw</code> だけが必須で、他は用途に応じて省略できます。</p>
+        <pre><code>api.registerShapeType("my_shape", {
+  // 必須: Canvas 2D で図形を描画する
+  draw(ctx, s) {
+    ctx.save();
+    ctx.globalAlpha = (s.opa || 100) / 100;
+    ctx.strokeStyle = s.color || "#fff";
+    ctx.lineWidth = s.sw || 2;
+    // ... 描画処理 ...
+    ctx.restore();
+  },
+
+  // バウンディングボックスを返す
+  getBounds(s) {
+    return { x: s.x, y: s.y, w: s.w, h: s.h };
+  },
+
+  // 中心座標を返す
+  getCenter(s) {
+    return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
+  },
+
+  // 移動
+  move(s, dx, dy) {
+    s.x += dx;
+    s.y += dy;
+  },
+
+  // リサイズ（handle: 'se'|'sw'|'ne'|'nw'|'n'|'s'|'e'|'w'）
+  resize(s, handle, start, nx, ny, nw, nh) {
+    s.x = nx; s.y = ny;
+    s.w = Math.max(4, nw);
+    s.h = Math.max(4, nh);
+  },
+
+  // SVG 書き出し用
+  toSVG(s) {
+    return `&lt;rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"
+              fill="none" stroke="${s.color}" stroke-width="${s.sw || 2}"/&gt;`;
+  },
+
+  // HTML プレビュー用のコード文字列
+  previewDrawCode: `
+    ctx.strokeRect(s.x, s.y, s.w, s.h);
+  `
+});</code></pre>
+        <table class="api-table">
+          <thead><tr><th>コールバック</th><th>必須</th><th>役割</th></tr></thead>
+          <tbody>
+            <tr><td><code>draw(ctx, s)</code></td><td>必須</td><td>Canvas 2Dコンテキストに図形を描画する。必ず <code>ctx.save()</code> / <code>ctx.restore()</code> で挟むこと</td></tr>
+            <tr><td><code>getBounds(s)</code></td><td>任意</td><td>選択枠・当たり判定に使うバウンディングボックスを返す</td></tr>
+            <tr><td><code>getCenter(s)</code></td><td>任意</td><td>回転の中心などに使う中心座標を返す</td></tr>
+            <tr><td><code>move(s, dx, dy)</code></td><td>任意</td><td>ドラッグ移動時に図形の座標を更新する</td></tr>
+            <tr><td><code>resize(s, handle, ...)</code></td><td>任意</td><td>選択枠のハンドルドラッグでサイズ変更する</td></tr>
+            <tr><td><code>toSVG(s)</code></td><td>任意</td><td>SVG書き出し機能で使われるマークアップ文字列を返す</td></tr>
+            <tr><td><code>previewDrawCode</code></td><td>任意</td><td>HTML/JS書き出し時に埋め込まれる描画コードの文字列</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="api-addShape">
+        <h4 class="api-cat">図形操作</h4>
+        <h3>addShape(shape)</h3>
+        <p>キャンバスに新しい図形を追加します。アクティブなレイヤーに自動で配置され、レイヤーパネルにも表示されます。<code>type</code> には <code>registerShapeType</code> で登録したキー、もしくは組み込みの図形タイプを指定します。</p>
+        <pre><code>api.addShape({
+  type: "my_shape",      // registerShapeType で登録した type
+  name: "マイ図形",      // レイヤーパネルの表示名
+  x: 100, y: 100,
+  w: 120, h: 80,
+  // color / sw / opa / dash / fill / rot は省略時にエディタ設定値が使われる
+});</code></pre>
+        <p><strong>Shapeの共通フィールド:</strong></p>
+        <table class="api-table">
+          <thead>
+            <tr><th>フィールド</th><th>型</th><th>説明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>type</code></td><td>string</td><td>図形タイプ</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>レイヤーパネル表示名</td></tr>
+            <tr><td><code>color</code></td><td>string</td><td>色 (CSS color)</td></tr>
+            <tr><td><code>sw</code></td><td>number</td><td>線の太さ</td></tr>
+            <tr><td><code>opa</code></td><td>number</td><td>不透明度 (0–100)</td></tr>
+            <tr><td><code>dash</code></td><td>string</td><td>破線パターン例: <code>"5,3"</code></td></tr>
+            <tr><td><code>fill</code></td><td>boolean</td><td>塗りつぶし</td></tr>
+            <tr><td><code>rot</code></td><td>number</td><td>回転角度 (度)</td></tr>
+            <tr><td><code>hidden</code></td><td>boolean</td><td>個別非表示</td></tr>
+            <tr><td><code>engine</code></td><td>string</td><td><code>"canvas2d"</code> (省略時) または <code>"threejs"</code></td></tr>
+            <tr><td><code>layerId</code></td><td>string</td><td>配置レイヤー (省略時はアクティブレイヤー)</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><code>addShape</code> で追加した図形は自動的にキーフレームアニメーションの対象になります。<code>draw(ctx, s)</code> に渡される <code>s.x</code> / <code>s.y</code> などはすでに補間済みの値なので、アニメーション対応のために特別なコードを書く必要はありません。</div>
+      </section>
+
+      <section id="api-getSelected">
+        <h3>getSelected()</h3>
+        <p>現在選択中の図形オブジェクトを返します。未選択時は <code>null</code> が返るため、必ずnullチェックしてから使ってください。</p>
+        <pre><code>const s = api.getSelected();
+if (s) console.log(s.type, s.x, s.y);</code></pre>
+      </section>
+
+      <section id="api-setSelectedPatch">
+        <h3>setSelectedPatch(patch)</h3>
+        <p>選択中の図形のプロパティを部分的に更新し、左側のプロパティパネルの表示も自動的に同期します。カスタムUIのスライダーなどと組み合わせてよく使われます。</p>
+        <pre><code>api.setSelectedPatch({ color: "#ff0000", sw: 4 });</code></pre>
+      </section>
+
+      <section id="api-redraw">
+        <h3>requestRender() / redraw()</h3>
+        <p>キャンバスの再描画を要求します。図形データを直接書き換えた後など、画面に即座に反映させたいときに <code>api.redraw()</code> を呼びます。</p>
+        <pre><code>api.redraw();</code></pre>
+      </section>
+
+      <section id="api-registerUI">
+        <h4 class="api-cat">UI拡張</h4>
+        <h3>registerUI(ui)</h3>
+        <p>任意のパネルエリアにカスタムUIを追加します。簡単なHTML文字列を渡すだけでよく、より高度なDOM操作が必要な場合は <code>render</code> / <code>onMount</code> コールバックを使います。</p>
+        <pre><code>api.registerUI({
+  id: "my_ui",
+  position: "right",     // "top" | "right" | "bottom" | "left" | "editor-top"
+  title: "マイ設定",     // オプション
+  html: `&lt;button onclick="doSomething()"&gt;実行&lt;/button&gt;`,
+
+  // render / onMount で DOM を直接操作することもできる
+  render(wrap, api) { ... },
+  onMount(wrap, api) { ... }
+});</code></pre>
+        <p><code>position</code> によって挿入先が変わります。ツールのオプションパネルには <code>"right"</code>、テキストエディタ画面に出したい場合は <code>"editor-top"</code> を使うのが一般的です。</p>
+      </section>
+
+      <section id="api-registerFileMenuItem">
+        <h3>registerFileMenuItem(item)</h3>
+        <p>上部の「File」メニューに独自の項目を追加します。書き出し・読み込みなど、ファイル操作系の機能をMODから提供したいときに使います。</p>
+        <pre><code>api.registerFileMenuItem({
+  id: "my_export",
+  label: "カスタム書き出し",
+  icon: "ti-download",   // Tabler Icons クラス名（省略可）
+  onClick(api) {
+    // 書き出し処理
+  }
+});</code></pre>
+      </section>
+
+      <section id="api-createLayer">
+        <h4 class="api-cat">レイヤー</h4>
+        <h3>createLayer(options)</h3>
+        <p>新しいレイヤーを作成してレイヤーパネルに追加します。作成したレイヤーは自動的にアクティブレイヤーになります。フォルダ型のレイヤーを作って、その中に子レイヤーをまとめることもできます。</p>
+        <pre><code>const layer = api.createLayer({
+  name: "WebGL Effects",    // 省略時 "New Layer"
+  type: "normal",           // "normal"（省略時）または "folder"
+  parentId: null,           // フォルダ内に入れる場合は親フォルダの id
+  color: "#8b5cf6",         // レイヤーパネルのカラードット（省略時なし）
+  visible: true,            // 省略時 true
+  locked: false,            // 省略時 false
+  opacity: 1,               // 0.0〜1.0（省略時 1）
+  blendMode: "source-over"  // CSS globalCompositeOperation（省略時 "source-over"）
+});
+// → 作成したレイヤーオブジェクトを返す</code></pre>
+        <p><strong>典型的な使い方（addObjectと組み合わせる）:</strong></p>
+        <pre><code>const layer = api.createLayer({ name: "Particle Layer", color: "#ff9900" });
+
+api.addObject({
+  engine: "threejs",
+  type: "particle",
+  name: "パーティクル",
+  layerId: layer.id       // 作成したレイヤーに配置
+});</code></pre>
+        <p><strong>フォルダを作成してレイヤーを入れる:</strong></p>
+        <pre><code>const folder = api.createLayer({ name: "WebGL Group", type: "folder" });
+const child  = api.createLayer({ name: "Effects",     parentId: folder.id });</code></pre>
+        <div class="note"><code>type: "folder"</code> のレイヤーは <code>addShape</code> / <code>addObject</code> の対象になりません。図形の追加先は <code>getDrawableActiveLayerId()</code> が自動的に子レイヤーへ振り分けます。</div>
+      </section>
+
+      <section id="api-getLayers">
+        <h3>getLayers / isLayerVisible / isLayerLocked</h3>
+        <p>現在のレイヤー構成を読み取るためのAPI群です。フォルダの表示/ロック状態が子レイヤーに継承されるかどうかも考慮した結果を返します。</p>
+        <pre><code>// 全レイヤーを取得
+const layers = api.getLayers();
+// 例: [ { id, name, type, visible, locked, opacity, ... }, ... ]
+
+// レイヤー状態の確認（フォルダの継承も考慮）
+api.isLayerVisible("layer-1");  // → boolean
+api.isLayerLocked("layer-1");   // → boolean</code></pre>
+      </section>
+
+      <section id="api-addObject">
+        <h4 class="api-cat">Three.js連携</h4>
+        <h3>addObject(obj) / removeObject(id) / updateObject(id, patch)</h3>
+        <p>Three.jsなど、Canvas 2D以外のレンダリングエンジンを使うオブジェクトを <code>shapes[]</code> に登録するためのAPIです。登録することで、通常の図形と同じくレイヤーパネルでの表示/非表示やロックの対象になります。</p>
+        <pre><code>const obj = api.addObject({
+  type: "my_3d_object",
+  engine: "threejs",          // 省略時 "threejs"
+  name: "3Dオブジェクト",
+  color: "#3B8AE6",
+  sw: 1, opa: 100, dash: "0", fill: false
+});
+
+api.updateObject(obj.id, { name: "名前変更" });
+api.removeObject(obj.id);</code></pre>
+      </section>
+
+      <section id="api-registerThreeRenderer">
+        <h3>registerThreeRenderer(callbacks)</h3>
+        <p>Three.jsレンダラー側がレイヤーの状態変化（表示切替・ロック・オブジェクトの個別非表示）を受け取るためのコールバックを登録します。<code>addObject</code> と組み合わせて、2DレイヤーパネルとWebGLシーンの状態を同期させるために使います。</p>
+        <pre><code>api.registerThreeRenderer({
+  onLayerVisibility(layerId, visible) { ... },
+  onLayerLock(layerId, locked)        { ... },
+  onObjectHidden(objectId, hidden, shape) { ... }
+});</code></pre>
+      </section>
+
+      <section id="api-util">
+        <h4 class="api-cat">ユーティリティ</h4>
+        <h3>toast / setStatus / getBounds / getCenter / getSceneSnapshot</h3>
+        <p>通知の表示や、図形の座標計算、シーン全体の情報取得など、細かい場面で使う補助的なAPIです。</p>
+        <pre><code>api.toast("ti-check", "完了しました");   // トースト通知
+api.setStatus("処理中...");              // ステータスバー
+
+const bounds = api.getBounds(shape);    // → { x, y, w, h }
+const center = api.getCenter(shape);    // → { x, y }
+
+const snapshot = api.getSceneSnapshot();
+// → { width, height, bg, totalDur, looping, fps, shapes[] }</code></pre>
+      </section>
+
+      <section id="api-getObjectsBy">
+        <h3>getObjectsByLayer(layerId) / getObjectsByEngine(engine)</h3>
+        <p>特定のレイヤーやエンジンに属する図形だけを絞り込んで取得します。Three.jsオブジェクトだけをまとめて処理したいときなどに便利です。</p>
+        <pre><code>// 特定レイヤーの全オブジェクト（エンジン問わず）
+api.getObjectsByLayer("layer-1");
+
+// 特定エンジンの全オブジェクト
+api.getObjectsByEngine("threejs");</code></pre>
+      </section>
+
+      <section id="patterns">
+        <h2>よくあるパターン</h2>
+        <p>実際のMOD開発でよく出てくる実装パターンを、コード例つきで紹介します。</p>
+
+        <h3>プロパティパネルと連動する</h3>
+        <p>選択中の図形のプロパティをカスタムUIから変更したいときは、<code>setSelectedPatch</code> をイベントリスナー内で呼びます。</p>
+        <pre><code>document.getElementById("my-slider").addEventListener("input", function () {
+  api.setSelectedPatch({ myProp: Number(this.value) });
+});</code></pre>
+
+        <h3>カスタムUIを右パネルに追加する</h3>
+        <p><code>registerUI</code> の <code>onMount</code> でDOM要素を取得し、イベントを紐づけます。<code>api.getSelected()</code> と組み合わせて、選択中の図形の種類をチェックしてから更新するのが安全です。</p>
+        <pre><code>api.registerUI({
+  id: "my_ui",
+  position: "right",
+  title: "オプション",
+  html: `&lt;label&gt;サイズ &lt;input id="my-size" type="range" min="10" max="200" value="60"&gt;&lt;/label&gt;`,
+  onMount(wrap, api) {
+    wrap.querySelector("#my-size").addEventListener("input", function () {
+      const s = api.getSelected();
+      if (s && s.type === "my_shape") api.setSelectedPatch({ r: Number(this.value) });
+    });
+  }
+});</code></pre>
+
+        <h3>ファイルメニューに書き出し項目を追加する</h3>
+        <p><code>getSceneSnapshot()</code> でシーン全体を取得し、任意の形式に変換して書き出せます。</p>
+        <pre><code>api.registerFileMenuItem({
+  id: "my_export",
+  label: "JSON で書き出し",
+  icon: "ti-file-export",
+  onClick(api) {
+    const scene = api.getSceneSnapshot();
+    const blob = new Blob([JSON.stringify(scene, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "scene.json"; a.click();
+    URL.revokeObjectURL(url);
+    api.toast("ti-check", "書き出し完了");
+  }
+});</code></pre>
+
+        <h3>マウスでキャンバスに図形を配置する</h3>
+        <p>カスタムツールを作る場合の定番パターンです。<code>mousedown</code> で開始点を記録し、<code>mouseup</code> で <code>addShape</code> を呼びます。他のツールと競合しないよう、<code>e.stopImmediatePropagation()</code> を必ず入れてください。</p>
+        <pre><code>const cv = document.getElementById("cv");
+let drawing = false, startX = 0, startY = 0;
+
+function canvasPos(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+cv.addEventListener("mousedown", function (e) {
+  if (api.activeModTool?.id !== "my_tool") return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  const p = canvasPos(e);
+  startX = p.x; startY = p.y;
+  drawing = true;
+}, true);
+
+cv.addEventListener("mouseup", function (e) {
+  if (!drawing || api.activeModTool?.id !== "my_tool") return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  drawing = false;
+
+  const p = canvasPos(e);
+  const x = Math.min(startX, p.x);
+  const y = Math.min(startY, p.y);
+  const w = Math.max(10, Math.abs(p.x - startX));
+  const h = Math.max(10, Math.abs(p.y - startY));
+
+  api.addShape({ type: "my_shape", name: "My Shape", x, y, w, h });
+
+  // ツールを解除して選択ツールに戻る
+  api.activeModTool = null;
+  document.querySelectorAll(".rp-btn[data-mod-tool]")
+          .forEach(b => b.classList.remove("active"));
+  if (window.setTool) window.setTool("select");
+}, true);</code></pre>
+
+        <h3>アニメーションに対応する</h3>
+        <p><code>addShape</code> で追加した図形は自動的にキーフレームアニメーションの対象になります。<code>draw(ctx, s)</code> では <code>s.x</code>, <code>s.y</code> などが補間済みの値で渡されるため、特別な対応は不要です。</p>
+      </section>
+
+      <section id="checklist">
+        <h2>チェックリスト</h2>
+        <p>MODを公開・共有する前に、次の項目を確認してください。</p>
+        <ul class="checklist">
+          <li><code>mod.json</code> の <code>id</code> がフォルダ名と一致している</li>
+          <li><code>main.js</code> が即時関数 <code>(function(){ ... })()</code> で囲まれている</li>
+          <li><code>api</code> の存在確認（<code>if (!api) return;</code>）がある</li>
+          <li><code>registerMod()</code> が最初に呼ばれている</li>
+          <li><code>draw()</code> 内で <code>ctx.save()</code> / <code>ctx.restore()</code> をしている</li>
+          <li><code>getBounds()</code> が正しいバウンディングボックスを返している</li>
+          <li>マウスイベントで <code>e.preventDefault()</code> + <code>e.stopImmediatePropagation()</code> をしている</li>
+        </ul>
+      </section>
+
+      <section id="samples">
+        <h2>サンプルMOD</h2>
+        <p>実際に動作するMODのソースコードを読むのが一番の近道です。以下のサンプルがリポジトリに含まれています。</p>
+        <div class="feature-list">
+          <article class="feature-item"><h3><code>mods/sample_shape/</code></h3><p>カスタム図形 + ツールの実装例。クイックスタートで説明した最小構成そのままの例です。</p></article>
+          <article class="feature-item"><h3><code>mods/star_shape/</code></h3><p>実際に動作する星形MOD。<code>registerShapeType</code> の実践例として参考になります。</p></article>
+          <article class="feature-item"><h3><code>mods/neon_brush/</code></h3><p><code>registerBrush</code> を使ったカスタムブラシの実装例です。</p></article>
+        </div>
+        <a href="https://github.com/dog7dog/Magic-Paint.js_Docs">より詳しい実装手順は、リポジトリ内の <code>docs/MOD_DEVELOPMENT_GUIDE.md</code> もあわせて参照してください。</a>
+      </section>
+    </main>
+  </div>
+
+  <footer><div class="footer-inner">Magic Paint Documentation</div></footer>
+
+  <script>
+    // サイドバーTOCのスクロールスパイ（現在表示中のセクションをハイライト）
+    (function () {
+      var links = Array.prototype.slice.call(document.querySelectorAll('.doc-toc a'));
+      if (!links.length) return;
+      var map = {};
+      links.forEach(function (a) {
+        var id = a.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) map[id] = a;
+      });
+      var ids = Object.keys(map);
+      if (!ids.length) return;
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          var link = map[entry.target.id];
+          if (!link) return;
+          if (entry.isIntersecting) {
+            links.forEach(function (a) { a.classList.remove('active'); });
+            link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-15% 0px -75% 0px', threshold: 0 });
+
+      ids.forEach(function (id) { observer.observe(document.getElementById(id)); });
+    })();
+  </script>
+</body>
+</html>
