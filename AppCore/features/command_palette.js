@@ -19,6 +19,8 @@ function mpCommands() {
     { icon: 'ti-arrow-forward-up', name: 'やり直す', keys: '⌘⇧Z', run: call('redo') },
     { icon: 'ti-copy', name: '選択をコピー', keys: '⌘C', run: call('copySelected') },
     { icon: 'ti-clipboard', name: '貼り付け', keys: '⌘V', run: call('paste') },
+    { icon: 'ti-photo-plus', name: '画像を挿入（ファイルから）', keys: '', run: call('openImageFilePicker') },
+    { icon: 'ti-copy', name: '画像をコピー（クリップボードへ）', keys: '⌘⇧C', run: call('copySelectedImageToClipboard') },
     { icon: 'ti-trash', name: '選択を削除', keys: 'Del', run: call('deleteSelected') },
     { icon: 'ti-copy', name: '複製', keys: '⌘D', run: call('mpDuplicateSelected') },
     { icon: 'ti-flip-horizontal', name: '左右反転', keys: '', run: call('mpFlipH') },
@@ -127,6 +129,11 @@ function mpShowShortcuts() {
       ['⌘Z', '元に戻す'], ['⌘⇧Z', 'やり直す'], ['⌘C', 'コピー'], ['⌘V', '貼り付け'],
       ['⌘D', '複製'], ['Del', '削除'], ['⌘G', 'グループ化'], ['⌘U', 'グループ解除'],
       ['⌘]', '前面へ'], ['⌘[', '背面へ'],
+    ]],
+    ['画像', [
+      ['⌘V', 'クリップボードの画像を貼り付け'],
+      ['⌘⇧C', '選択中の画像をコピー'],
+      ['ドラッグ&ドロップ', 'ファイル / ブラウザの画像を挿入'],
     ]],
     ['表示', [
       ['⌘+', 'ズームイン'], ['⌘-', 'ズームアウト'], ['⌘0', 'ズームリセット'],

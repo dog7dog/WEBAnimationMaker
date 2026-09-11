@@ -2,32 +2,32 @@
 function copySelected() {
   if (!selected) return;
   clipboard = JSON.parse(JSON.stringify(selected));
-  const { snap, ..._ } = clipboard; // snap は除外
+  // ブラシのキャッシュ(snap)はcanvas要素で、JSONを通すと空オブジェクトに
+  // なってしまう。持ち回さず、貼り付けたあとに pts から作り直す。
+  delete clipboard.snap;
   setStatus(selected.name + ' をコピー');
 }
 
 function paste() {
   if (!clipboard) return;
   const copy = JSON.parse(JSON.stringify(clipboard));
+  delete copy.snap;
   copy.id = 'shape_copy_' + Math.random().toString(36).slice(2, 8);
   copy.layerId = getDrawableActiveLayerId();
   delete copy.groupId;
-  if (copy.type === 'rect' || copy.type === 'text') { copy.x += 20; copy.y += 20; }
-  else if (['circle', 'triangle', 'polygon'].includes(copy.type)) { copy.cx += 20; copy.cy += 20; }
-  else if (copy.type === 'line') { copy.x1 += 20; copy.y1 += 20; copy.x2 += 20; copy.y2 += 20; }
-  else if (copy.type === 'pen' || copy.type === 'brush' || copy.type === 'mod-brush') {
-    if (copy.pts) copy.pts = copy.pts.map(p => ({ x: p.x + 20, y: p.y + 20 }));
-  } else {
-    const renderer = window.AnimationApp?.customRenderers?.[copy.type];
-    if (renderer && renderer.move) renderer.move(copy, 20, 20);
-  }
+  // 元の上に重ならないよう少しずらす。型ごとの座標の持ち方は
+  // moveShape() が知っているので、そちらに任せる
+  moveShape(copy, 20, 20);
   const base = copy.name.replace(/ コピー\d*$/, '');
   const cnt = shapes.filter(s => s.name.startsWith(base + ' コピー')).length;
   copy.name = base + ' コピー' + (cnt > 0 ? cnt + 1 : '');
   saveState();
   shapes.push(copy);
+  // ブラシは描画がキャッシュ頼りなので、移動後の座標で作り直す
+  if (copy.type === 'brush' && typeof rebuildBrushSnap === 'function') rebuildBrushSnap(copy);
   selected = copy;
   clipboard = JSON.parse(JSON.stringify(copy));
+  delete clipboard.snap;
   syncAll();
   setStatus(copy.name + ' をペースト');
 }
@@ -62,8 +62,23 @@ document.addEventListener('keydown', e => {
 
   if (isTypingContext()) return;
 
-  if (mod && e.key === 'c') { copySelected(); e.preventDefault(); }
-  if (mod && e.key === 'v') { paste(); e.preventDefault(); }
+  // ⌘⇧C: 選択中の画像をOSのクリップボードへ（他のアプリへ貼れるようにする）。
+  // Shiftを押すと e.key は 'C' になるので、大文字小文字を揃えて見る。
+  if (mod && e.shiftKey && e.key.toLowerCase() === 'c') {
+    if (typeof copySelectedImageToClipboard === 'function') copySelectedImageToClipboard();
+    e.preventDefault();
+  } else if (mod && e.key.toLowerCase() === 'c') {
+    copySelected();
+    e.preventDefault();
+  }
+
+  // ⌘V は打ち消さない。クリップボードの画像を拾うためにネイティブの
+  // paste イベントを通し、図形の貼り付けもそちらから呼ぶ
+  // （paste イベントが来ないブラウザ向けのフォールバック付き）。
+  if (mod && e.key.toLowerCase() === 'v') {
+    if (typeof schedulePasteFallback === 'function') schedulePasteFallback();
+    else { paste(); e.preventDefault(); }
+  }
   if (mod && e.key === 'z' && !e.shiftKey) { undo(); e.preventDefault(); }
   if (mod && e.key === 'z' && e.shiftKey) { redo(); e.preventDefault(); }
   if (mod && e.key === 'p') { openSitePreview(); e.preventDefault(); }

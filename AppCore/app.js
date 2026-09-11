@@ -5,6 +5,7 @@ initJSEditor();
 initViewTabs();
 initJeFileManager();
 initImageDropZone();
+initClipboardImagePaste();
 setTimeout(() => { initRuler(); }, 50);
 setTimeout(initGroupAndFpsControls, 80);
 setTimeout(loadMods, 250);
