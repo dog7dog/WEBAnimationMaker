@@ -42,23 +42,32 @@ function saveState() {
 }
 
 // 色・線幅・角度などのプロパティ変更を「元に戻す」できるようにする。
-// スライダーのドラッグや色ピッカーの操作は input イベントが連続で来るので、
-// 毎回積むと1回の操作を戻すのに何十回も⌘Zが要る。
-// 少し間が空いたら次の操作とみなし、ひと続きの変更の手前で1回だけ積む。
 // （変更を反映する「前」に呼ぶこと）
+//
+// key を渡すと、同じ key の変更が続いているあいだは1回の操作にまとめる。
+// スライダーのドラッグや色ピッカーの操作は input イベントが連続で来るので、
+// 毎回積むと1回の操作を戻すのに何十回も⌘Zが要るため。
+// key を渡さない変更（パレットのクリック、チェックの切り替えなど）は
+// 1回ずつ別の操作として積む。素早く続けてクリックしても混ざらない。
 const PROPERTY_EDIT_GAP = 600;
 let _propertyEditTimer = null;
+let _propertyEditKey = null;
 
-function beginPropertyEdit() {
-  if (!_propertyEditTimer) saveState();
+function beginPropertyEdit(key) {
+  const continuing = key && key === _propertyEditKey && _propertyEditTimer;
+  if (!continuing) saveState();
   clearTimeout(_propertyEditTimer);
-  _propertyEditTimer = setTimeout(() => { _propertyEditTimer = null; }, PROPERTY_EDIT_GAP);
+  _propertyEditKey = key || null;
+  _propertyEditTimer = key
+    ? setTimeout(() => { _propertyEditTimer = null; _propertyEditKey = null; }, PROPERTY_EDIT_GAP)
+    : null;
 }
 
 // ⌘Zの直後にまた変更したら、それは別の操作として積み直す
 function _endPropertyEdit() {
   clearTimeout(_propertyEditTimer);
   _propertyEditTimer = null;
+  _propertyEditKey = null;
 }
 
 function undo() {

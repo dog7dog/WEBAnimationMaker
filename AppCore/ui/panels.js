@@ -63,9 +63,10 @@ function _ppRound(v) {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : '';
 }
 
-// 選択中の図形の変更なら、変える前に履歴を積む（⌘Zで戻せるように）
-function _ppBeforeEdit(appliesToSelected) {
-  if (appliesToSelected && typeof beginPropertyEdit === 'function') beginPropertyEdit();
+// 選択中の図形の変更なら、変える前に履歴を積む（⌘Zで戻せるように）。
+// editKey を渡すと、同じ欄を続けて動かしている間は1回の操作にまとめる。
+function _ppBeforeEdit(appliesToSelected, editKey) {
+  if (appliesToSelected && typeof beginPropertyEdit === 'function') beginPropertyEdit(editKey);
 }
 
 // プロパティのスライダーと数値欄をつなぐ。
@@ -87,7 +88,8 @@ function _ppBeforeEdit(appliesToSelected) {
   const commit = v => {
     const applies = setDefault(v);
     if (applies) {
-      _ppBeforeEdit(true);
+      // スライダーと数値欄は同じ値なので、同じ名前でまとめる
+      _ppBeforeEdit(true, id);
       applyToShape(selected);
       redraw();
     }

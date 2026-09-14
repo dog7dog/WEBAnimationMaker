@@ -16,13 +16,14 @@ let colorTarget = 'fill';
 
 function _isHexColor(c) { return /^#[0-9a-f]{6}$/i.test(c || ''); }
 
-// 選択中の図形の変更なら、変える前に履歴を積む（⌘Zで戻せるように）
-function _beforeSelectedEdit() {
-  if (selected && typeof beginPropertyEdit === 'function') beginPropertyEdit();
+// 選択中の図形の変更なら、変える前に履歴を積む（⌘Zで戻せるように）。
+// editKey は色ピッカーのドラッグのような連続操作をまとめるための名前。
+function _beforeSelectedEdit(editKey) {
+  if (selected && typeof beginPropertyEdit === 'function') beginPropertyEdit(editKey);
 }
 
-function setColor(c) {
-  _beforeSelectedEdit();
+function setColor(c, editKey) {
+  _beforeSelectedEdit(editKey);
   color = c;
   if (selected) { selected.color = c; redraw(); }
   syncColorControls();
@@ -30,9 +31,9 @@ function setColor(c) {
 
 // 枠線の色を決める。null を渡すと「塗りと同じ」に戻す。
 // 塗りの色と同じく、次に描く図形の設定と、選択中の図形の両方に効く。
-function setStrokeColor(c) {
+function setStrokeColor(c, editKey) {
   const applies = selected && STROKE_COLOR_TYPES.includes(selected.type);
-  if (applies) _beforeSelectedEdit();
+  if (applies) _beforeSelectedEdit(editKey);
   strokeColor = c || null;
   if (applies) {
     selected.strokeColor = strokeColor;
@@ -56,7 +57,9 @@ function applyPaletteColor(c) {
 }
 
 function setColorTarget(target) {
-  colorTarget = target === 'stroke' ? 'stroke' : 'fill';
+  const next = target === 'stroke' ? 'stroke' : 'fill';
+  if (next === colorTarget) return;
+  colorTarget = next;
   syncColorControls();
 }
 
@@ -125,22 +128,30 @@ document.getElementById('cur-stroke').addEventListener('click', () => {
   setColorTarget('stroke');
   document.getElementById('stroke-picker').click();
 });
-// ラベルのあたりをクリックしても枠を選べるようにする
+// ラベルのあたりをクリックしても枠を選べるようにする。
+// チェックボックスのクリックはここで扱わない: click の途中で表示を同期すると、
+// ブラウザが切り替えたチェックを change の前に元へ戻してしまい、塗りが切り替わらない。
 document.getElementById('fill-slot').addEventListener('click', e => {
-  if (e.target.id !== 'cur-color') setColorTarget('fill');
+  if (e.target.id === 'cur-color' || e.target.id === 'fill-chk') return;
+  setColorTarget('fill');
+  // 「塗り」の文字は、これまでどおりクリックで塗りの有無も切り替える
+  // （テキストの「文字色」や線の「線の色」のときはチェック自体が無いので何もしない）
+  const chk = document.getElementById('fill-chk');
+  if (e.target.id === 'fill-lbl' && chk.style.display !== 'none') setFill(!chk.checked);
 });
 document.getElementById('stroke-area').addEventListener('click', e => {
   if (e.target.id !== 'cur-stroke' && !e.target.closest('#stroke-link-btn')) setColorTarget('stroke');
 });
 
-document.getElementById('cpicker').addEventListener('input', e => setColor(e.target.value));
-document.getElementById('stroke-picker').addEventListener('input', e => setStrokeColor(e.target.value));
+// 色ピッカーは動かしている間ずっと input が来るので、1回の操作にまとめる
+document.getElementById('cpicker').addEventListener('input', e => setColor(e.target.value, 'fill-picker'));
+document.getElementById('stroke-picker').addEventListener('input', e => setStrokeColor(e.target.value, 'stroke-picker'));
 document.getElementById('stroke-link-btn').addEventListener('click', () => setStrokeColor(null));
 document.getElementById('fill-chk').addEventListener('change', e => setFill(e.target.checked));
 document.querySelectorAll('.pdot').forEach(d => d.addEventListener('click', () => applyPaletteColor(d.dataset.c)));
 
 document.getElementById('canvas-bg-picker').addEventListener('input', e => {
-  if (typeof beginPropertyEdit === 'function') beginPropertyEdit();
+  if (typeof beginPropertyEdit === 'function') beginPropertyEdit('canvas-bg');
   canvasBg = e.target.value;
   redraw();
 });
