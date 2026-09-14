@@ -208,7 +208,10 @@ function mpRenderSwatches() {
     dot.className = 'mp-swatch';
     dot.style.background = c;
     dot.title = c + '（クリックで選択 / 右クリックで削除）';
-    dot.onclick = () => { if (typeof setColor === 'function') setColor(c); };
+    dot.onclick = () => {
+      if (typeof applyPaletteColor === 'function') applyPaletteColor(c);
+      else if (typeof setColor === 'function') setColor(c);
+    };
     dot.oncontextmenu = e => {
       e.preventDefault();
       mpSaveSwatches(mpLoadSwatches().filter(x => x !== c));

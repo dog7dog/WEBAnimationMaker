@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WEB Animation Maker</title>
-  <link rel="stylesheet" href="style.css?v=20260914-1">
+  <link rel="stylesheet" href="style.css?v=20260914-2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
@@ -34,7 +34,7 @@
     <div id="topbar">
       <!-- ファイルメニュー -->
       <div id="file-wrap">
-        <button id="file-btn" onclick="toggleFileMenu()">
+        <button id="file-btn" onclick="toggleFileMenu()" title="ファイル（新規・保存・読み込み・書き出し）" aria-label="ファイル">
           <i class="ti ti-files"></i>
         </button>
         <div id="file-menu">
@@ -62,10 +62,20 @@
 
       <div class="tb-sep"></div>
 
-      <!-- カラーピッカー + パレット -->
+      <!-- 色: 塗り / 枠線。パレットは「いま選んでいる方」に効く -->
       <div id="color-area">
-        <div id="cur-color" onclick="document.getElementById('cpicker').click()"></div>
-        <input type="color" id="cpicker" value="#3B8AE6">
+        <div class="color-slot active" id="fill-slot" data-target="fill">
+          <input type="checkbox" id="fill-chk" title="塗りつぶす">
+          <span class="slot-lbl" id="fill-lbl">塗り</span>
+          <div id="cur-color" title="塗りの色を選ぶ"></div>
+          <input type="color" id="cpicker" value="#3B8AE6" tabindex="-1">
+        </div>
+        <div class="color-slot linked" id="stroke-area" data-target="stroke">
+          <span class="slot-lbl">枠線</span>
+          <div id="cur-stroke" title="枠線の色を選ぶ（四角形・円・三角形・多角形）"></div>
+          <input type="color" id="stroke-picker" value="#3B8AE6" tabindex="-1">
+          <button class="tb-btn" id="stroke-link-btn" title="枠線を塗りと同じ色にする"><i class="ti ti-link"></i></button>
+        </div>
         <div id="palette">
           <div class="pdot" style="background:#e74c3c" data-c="#e74c3c"></div>
           <div class="pdot" style="background:#e67e22" data-c="#e67e22"></div>
@@ -76,19 +86,6 @@
           <div class="pdot" style="background:#ffffff;border:1px solid #555" data-c="#ffffff"></div>
           <div class="pdot" style="background:#888" data-c="#888888"></div>
         </div>
-      </div>
-
-      <div class="tb-sep"></div>
-
-      <!-- 塗りつぶし -->
-      <label class="tb-chk"><input type="checkbox" id="fill-chk"> 塗り</label>
-
-      <!-- 枠線の色（四角形・円・三角形・多角形） -->
-      <div id="stroke-area" class="linked" title="枠線の色（四角形・円・三角形・多角形）">
-        <span class="tb-lbl">枠線</span>
-        <div id="cur-stroke" onclick="document.getElementById('stroke-picker').click()"></div>
-        <input type="color" id="stroke-picker" value="#3B8AE6">
-        <button class="tb-btn" id="stroke-link-btn" title="枠線を塗りと同じ色にする"><i class="ti ti-link"></i></button>
       </div>
 
       <div class="tb-sep"></div>
@@ -161,17 +158,17 @@
           <div class="pp-row" id="row-sw">
             <span class="pp-label">線幅</span>
             <input type="range" id="p-sw" min="0.5" max="20" step="0.5" value="2">
-            <span class="pp-val" id="p-sw-v">2</span>
+            <input type="number" class="pp-num" id="p-sw-v" min="0.5" max="200" step="0.5"><span class="pp-unit">px</span>
           </div>
           <div class="pp-row" id="row-rr">
             <span class="pp-label">角丸</span>
             <input type="range" id="p-rr" min="0" max="100" step="1" value="0">
-            <span class="pp-val" id="p-rr-v">0</span>
+            <input type="number" class="pp-num" id="p-rr-v" min="0" max="500" step="1"><span class="pp-unit">px</span>
           </div>
           <div class="pp-row" id="row-sides">
             <span class="pp-label">頂点数</span>
             <input type="range" id="p-sides" min="3" max="12" step="1" value="6">
-            <span class="pp-val" id="p-sides-v">6</span>
+            <input type="number" class="pp-num" id="p-sides-v" min="3" max="12" step="1"><span class="pp-unit"></span>
           </div>
           <div class="pp-row" id="row-text-font">
             <span class="pp-label">フォント</span>
@@ -180,17 +177,17 @@
           <div class="pp-row" id="row-text-size">
             <span class="pp-label">文字サイズ</span>
             <input type="range" id="p-text-size" min="8" max="120" step="1" value="24">
-            <span class="pp-val" id="p-text-size-v">24</span>
+            <input type="number" class="pp-num" id="p-text-size-v" min="1" max="400" step="1"><span class="pp-unit">px</span>
           </div>
           <div class="pp-row">
             <span class="pp-label">角度</span>
             <input type="range" id="p-rot" min="0" max="360" step="1" value="0">
-            <span class="pp-val" id="p-rot-v">0°</span>
+            <input type="number" class="pp-num" id="p-rot-v" min="0" max="360" step="1"><span class="pp-unit">°</span>
           </div>
           <div class="pp-row">
             <span class="pp-label">透明度</span>
             <input type="range" id="p-opa" min="0" max="100" step="1" value="100">
-            <span class="pp-val" id="p-opa-v">100%</span>
+            <input type="number" class="pp-num" id="p-opa-v" min="0" max="100" step="1"><span class="pp-unit">%</span>
           </div>
           <div class="pp-row" id="row-dash">
             <span class="pp-label">線スタイル</span>
@@ -351,10 +348,10 @@
   <script src="./AppCore/core/state.js?v=20260914-1"></script>
   <script src="./AppCore/canvas/shapes.js?v=20260914-1"></script>
   <script src="./AppCore/canvas/renderer.js?v=20260914-1"></script>
-  <script src="./AppCore/core/history.js?v=20260810-1"></script>
+  <script src="./AppCore/core/history.js?v=20260914-2"></script>
   <script src="./AppCore/core/events.js?v=20260914-1"></script>
   <script src="./AppCore/io/project.js?v=20260810-1"></script>
-  <script src="./AppCore/ui/panels.js?v=20260914-1"></script>
+  <script src="./AppCore/ui/panels.js?v=20260914-2"></script>
   <script src="./AppCore/interactions/model.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/codegen-css.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/codegen-js.js?v=20260909-1"></script>
@@ -368,7 +365,7 @@
   <script src="./AppCore/interactions/coding-tab.js?v=20260902-1"></script>
   <script src="./AppCore/canvas/brush.js?v=20260810-1"></script>
   <script src="./AppCore/ui/editor.js?v=20260914-1"></script>
-  <script src="./AppCore/ui/toolbar.js?v=20260914-1"></script>
+  <script src="./AppCore/ui/toolbar.js?v=20260914-2"></script>
   <script src="./AppCore/mod/api.js?v=20260914-1"></script>
   <script src="./AppCore/mod/loader.js?v=20260810-2"></script>
   <!-- AI Framework -->
@@ -377,7 +374,7 @@
   <script src="./AppCore/ai/ai_panel.js?v=20260810-1"></script>
   <script src="./AppCore/app.js?v=20260911-1"></script>
   <!-- Feature Pack -->
-  <script src="./AppCore/features/edit_tools.js?v=20260810-1"></script>
+  <script src="./AppCore/features/edit_tools.js?v=20260914-2"></script>
   <script src="./AppCore/features/viewport.js?v=20260810-1"></script>
   <script src="./AppCore/features/command_palette.js?v=20260911-1"></script>
   <script src="./AppCore/features/autosave.js?v=20260810-1"></script>

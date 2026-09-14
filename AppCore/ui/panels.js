@@ -2,7 +2,7 @@
 function syncProps() {
   const empty = document.getElementById('panel-empty');
   const props = document.getElementById('panel-props');
-  if (typeof syncStrokeSwatch === 'function') syncStrokeSwatch();
+  if (typeof syncColorControls === 'function') syncColorControls();
   if (!selected) {
     empty.style.display = 'flex';
     props.style.display = 'none';
@@ -32,17 +32,18 @@ function syncProps() {
   document.getElementById('row-text-size').style.display =
     selected.type === 'text' ? 'flex' : 'none';
 
-  const set = (id, val, suffix = '') => {
+  const set = (id, val) => {
     const el = document.getElementById(id);
-    const vl = document.getElementById(id + '-v');
+    const num = document.getElementById(id + '-v');
     if (el) el.value = val;
-    if (vl) vl.textContent = val + suffix;
+    // 打ち込んでいる最中の欄は書き換えない（カーソルが飛ぶため）
+    if (num && document.activeElement !== num) num.value = _ppRound(val);
   };
 
   set('p-sw', selected.sw ?? 2);
   set('p-rr', selected.rr ?? 0);
-  set('p-rot', selected.rot ?? 0, '°');
-  set('p-opa', selected.opa ?? 100, '%');
+  set('p-rot', selected.rot ?? 0);
+  set('p-opa', selected.opa ?? 100);
   set('p-sides', selected.sides ?? 6);
 
   if (selected.type === 'text') {
@@ -56,21 +57,66 @@ function syncProps() {
 
 }
 
-// プロパティスライダーのバインド
+// 数値欄に出すときの丸め（0.5刻みの線幅などが 2.0000001 のように出ないように）
+function _ppRound(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : '';
+}
+
+// 選択中の図形の変更なら、変える前に履歴を積む（⌘Zで戻せるように）
+function _ppBeforeEdit(appliesToSelected) {
+  if (appliesToSelected && typeof beginPropertyEdit === 'function') beginPropertyEdit();
+}
+
+// プロパティのスライダーと数値欄をつなぐ。
+//   スライダー: ざっくり動かす（範囲はよく使うところだけ）
+//   数値欄    : 正確な値を打つ（スライダーの範囲より広く入れられる）
+// apply(v) は「選択中の図形に効くか」を返す
 [
-  ['p-sw', 'p-sw-v', '', v => { sw = v; if (selected) { selected.sw = v; redraw(); } }],
-  ['p-rr', 'p-rr-v', '', v => { rr = v; if (selected) { selected.rr = v; redraw(); } }],
-  ['p-rot', 'p-rot-v', '°', v => { rot = v; if (selected) { selected.rot = v; redraw(); } }],
-  ['p-opa', 'p-opa-v', '%', v => { opa = v; if (selected) { selected.opa = v; redraw(); } }],
-  ['p-sides', 'p-sides-v', '', v => { sides = v; if (selected && selected.type === 'polygon') { selected.sides = v; redraw(); } }],
-].forEach(([id, vid, sfx, fn]) => {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener('input', e => {
-    const v = parseFloat(e.target.value);
-    document.getElementById(vid).textContent = v + sfx;
-    fn(v);
+  ['p-sw', v => { sw = v; return !!selected; }, s => { s.sw = sw; }],
+  ['p-rr', v => { rr = v; return selected?.type === 'rect'; }, s => { s.rr = rr; }],
+  ['p-rot', v => { rot = v; return !!selected; }, s => { s.rot = rot; }],
+  ['p-opa', v => { opa = v; return !!selected; }, s => { s.opa = opa; }],
+  ['p-sides', v => { sides = v; return selected?.type === 'polygon'; }, s => { s.sides = sides; }],
+  ['p-text-size', v => { textFontSize = v; return selected?.type === 'text'; }, s => { s.fontSize = textFontSize; }],
+].forEach(([id, setDefault, applyToShape]) => {
+  const slider = document.getElementById(id);
+  const num = document.getElementById(id + '-v');
+  if (!slider) return;
+
+  const commit = v => {
+    const applies = setDefault(v);
+    if (applies) {
+      _ppBeforeEdit(true);
+      applyToShape(selected);
+      redraw();
+    }
+  };
+
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value);
+    if (num) num.value = _ppRound(v);
+    commit(v);
   });
+
+  if (!num) return;
+  num.addEventListener('input', () => {
+    const v = parseFloat(num.value);
+    if (!Number.isFinite(v)) return; // 打ちかけ（空欄や「-」だけ）の間は反映しない
+    const min = Number(num.min), max = Number(num.max);
+    const clamped = Math.min(Number.isFinite(max) ? max : v, Math.max(Number.isFinite(min) ? min : v, v));
+    slider.value = clamped; // スライダーの範囲外なら端に寄るだけ
+    commit(clamped);
+  });
+  // 確定したら範囲内の値に整えて表示し直す
+  num.addEventListener('change', () => {
+    const v = parseFloat(num.value);
+    num.value = _ppRound(Number.isFinite(v)
+      ? Math.min(Number(num.max), Math.max(Number(num.min), v))
+      : slider.value);
+  });
+  // Enterで確定してキャンバス操作に戻れるように
+  num.addEventListener('keydown', e => { if (e.key === 'Enter') num.blur(); });
 });
 
 // テキスト: フォント選択肢を組み立てる（システムフォント + Google Fonts）
@@ -89,24 +135,16 @@ document.getElementById('p-text-font')?.addEventListener('change', e => {
   textFontFamily = e.target.value;
   ensureGoogleFont(textFontFamily);
   if (selected && selected.type === 'text') {
+    _ppBeforeEdit(true);
     selected.fontFamily = textFontFamily;
     redraw();
   }
 });
 
-document.getElementById('p-text-size')?.addEventListener('input', e => {
-  const v = parseFloat(e.target.value);
-  textFontSize = v;
-  document.getElementById('p-text-size-v').textContent = v;
-  if (selected && selected.type === 'text') {
-    selected.fontSize = v;
-    redraw();
-  }
-});
 
 document.getElementById('p-dash').addEventListener('change', e => {
   dash = e.target.value;
-  if (selected) { selected.dash = dash; redraw(); }
+  if (selected) { _ppBeforeEdit(true); selected.dash = dash; redraw(); }
 });
 
 // ── レイヤーパネル ────────────────────────────────────────────

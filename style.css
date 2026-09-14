@@ -138,37 +138,65 @@ body {
 /* Color area */
 #color-area { display: flex; align-items: center; gap: 6px; }
 
+/* 塗り / 枠線 の枠。選んでいる方を囲み、パレットはその色に効く */
+.color-slot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  user-select: none;
+}
+.color-slot:hover { background: var(--bg3); }
+.color-slot.active { border-color: var(--accent); background: var(--bg2); }
+.color-slot.disabled { opacity: 0.35; pointer-events: none; }
+.color-slot .slot-lbl { font-size: 12px; color: var(--fg1); white-space: nowrap; }
+.color-slot input[type=checkbox] { margin: 0; accent-color: var(--accent); cursor: pointer; }
+/* 色ピッカー本体は見本から開くので隠す（見本が2つ並ばないように） */
+#cpicker, #stroke-picker { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
+/* 枠線の見本は中を抜いた四角で「枠」を表す（背景色が枠の色になる） */
+#cur-stroke {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 6px;
+  box-sizing: border-box;
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+#stroke-link-btn { padding: 2px 4px; height: 22px; }
+/* 塗りと同じ色のときはリンクが効いている見た目にする */
+#stroke-area.linked #stroke-link-btn { color: var(--accent); }
+
+/* 塗りつぶさない設定のときは、色をリングで残して中に斜線を入れる（「塗りなし」） */
+#cur-color.empty {
+  background:
+    linear-gradient(135deg, transparent 43%, #e74c3c 43%, #e74c3c 57%, transparent 57%),
+    var(--bg2);
+  box-shadow: inset 0 0 0 4px var(--swatch, #3B8AE6);
+}
+
+#palette.disabled { opacity: 0.35; pointer-events: none; }
+
 #cur-color {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid var(--border2);
   flex-shrink: 0;
+  box-sizing: border-box;
+  background: var(--swatch, #3B8AE6);
 }
 
 #palette { display: flex; gap: 4px; }
 
-/* 枠線の色 */
-#stroke-area { display: flex; align-items: center; gap: 5px; margin-left: 10px; }
-#stroke-area .tb-lbl { font-size: 12px; color: var(--fg1); }
-#cur-stroke {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  flex-shrink: 0;
-  /* 中を抜いた四角で「枠線」を表す（背景色が枠の色になる） */
-  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  padding: 5px;
-  box-sizing: border-box;
-}
-#stroke-picker { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-#stroke-link-btn { padding: 2px 5px; }
-/* 塗りと同じ色のときはリンクが有効な見た目にする */
-#stroke-area.linked #stroke-link-btn { color: var(--accent); }
-#stroke-area.disabled { opacity: 0.35; pointer-events: none; }
 
 .pdot {
   width: 18px;
@@ -251,7 +279,7 @@ body {
 
 /* Left panel: properties */
 #left-panel {
-  width: 200px;
+  width: 224px;
   flex-shrink: 0;
   background: var(--bg1);
   border-right: 1px solid var(--border);
@@ -299,8 +327,9 @@ body {
 .pp-label {
   font-size: 11px;
   color: var(--fg2);
-  width: 52px;
+  width: 58px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .pp-row input[type=range] {
   flex: 1;
@@ -333,6 +362,20 @@ body {
   color: var(--fg0);
   padding: 0 4px;
 }
+/* 数値欄（スライダーの右）。.pp-row input[type=number] の flex:1 を打ち消して幅を固定する */
+.pp-row input.pp-num {
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-family: monospace;
+  text-align: right;
+  -moz-appearance: textfield;
+}
+.pp-row input.pp-num::-webkit-inner-spin-button,
+.pp-row input.pp-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.pp-unit { font-size: 10px; color: var(--fg3); width: 14px; flex-shrink: 0; margin-left: -3px; }
+
 .pp-val {
   font-size: 10px;
   color: var(--fg1);
