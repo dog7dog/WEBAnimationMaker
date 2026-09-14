@@ -6,6 +6,8 @@ const area = document.getElementById('canvas-area');
 
 // ── グローバル状態 ────────────────────────────────────────────
 let color = '#3B8AE6';
+// 枠線の色。null のあいだは塗りの色(color)と同じ色で描く
+let strokeColor = null;
 let doFill = false;
 let tool = 'select';
 let shapes = [];

@@ -60,7 +60,7 @@ function drawShape(s, dc) {
   if (s.hidden) return;
   dc.save();
   dc.globalAlpha = (s.opa ?? 100) / 100;
-  dc.strokeStyle = s.color || '#fff';
+  dc.strokeStyle = shapeStrokeColor(s);
   dc.lineWidth = s.sw || 2;
   dc.lineCap = 'round';
   dc.lineJoin = 'round';
@@ -360,7 +360,8 @@ function redraw() {
 
 function drawGhost(t, x1, y1, x2, y2) {
   ctx.save();
-  ctx.strokeStyle = color;
+  // 描いている最中の枠も、確定後と同じ枠線の色で見せる
+  ctx.strokeStyle = (STROKE_COLOR_TYPES.includes(t) && strokeColor) || color;
   ctx.lineWidth = sw;
   ctx.setLineDash([5, 3]);
   ctx.globalAlpha = 0.6;

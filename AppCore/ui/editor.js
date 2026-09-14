@@ -760,7 +760,7 @@ function buildShapeSVGElement(s, i, origin = { x: 0, y: 0 }, opts = {}) {
   const cls = opts.className !== undefined
     ? opts.className
     : 'el-' + safeCssIdent(s.id || ('s' + i));
-  const c = s.color, sw2 = s.sw || 2, op = (s.opa ?? 100) / 100;
+  const c = s.color, sc = shapeStrokeColor(s), sw2 = s.sw || 2, op = (s.opa ?? 100) / 100;
   const fi = s.fill ? c : 'none';
   const dd = s.dash && s.dash !== '0' ? 'stroke-dasharray="' + s.dash + '"' : '';
   const ctr = getCenter(s);
@@ -777,9 +777,9 @@ function buildShapeSVGElement(s, i, origin = { x: 0, y: 0 }, opts = {}) {
 
   if (s.type === 'rect') {
     const hw = s.w / 2, hh = s.h / 2;
-    inner = '<rect x="' + Math.round(-hw) + '" y="' + Math.round(-hh) + '" width="' + Math.round(s.w) + '" height="' + Math.round(s.h) + '" rx="' + (s.rr || 0) + '" fill="' + fi + '" stroke="' + c + '" stroke-width="' + sw2 + '" ' + dd + '/>';
+    inner = '<rect x="' + Math.round(-hw) + '" y="' + Math.round(-hh) + '" width="' + Math.round(s.w) + '" height="' + Math.round(s.h) + '" rx="' + (s.rr || 0) + '" fill="' + fi + '" stroke="' + sc + '" stroke-width="' + sw2 + '" ' + dd + '/>';
   } else if (s.type === 'circle') {
-    inner = '<ellipse cx="0" cy="0" rx="' + Math.round(s.rx) + '" ry="' + Math.round(s.ry) + '" fill="' + fi + '" stroke="' + c + '" stroke-width="' + sw2 + '"/>';
+    inner = '<ellipse cx="0" cy="0" rx="' + Math.round(s.rx) + '" ry="' + Math.round(s.ry) + '" fill="' + fi + '" stroke="' + sc + '" stroke-width="' + sw2 + '"/>';
   } else if (s.type === 'triangle' || s.type === 'polygon') {
     const n = s.type === 'triangle' ? 3 : (s.sides || 6);
     const sx2 = s.scaleX || 1, sy2 = s.scaleY || 1;
@@ -789,13 +789,13 @@ function buildShapeSVGElement(s, i, origin = { x: 0, y: 0 }, opts = {}) {
       const a = a0 + k * 2 * Math.PI / n;
       return Math.round(s.r * Math.cos(a) * sx2) + ',' + Math.round(s.r * Math.sin(a) * sy2);
     }).join(' ');
-    inner = '<polygon points="' + pts + '" fill="' + fi + '" stroke="' + c + '" stroke-width="' + sw2 + '" ' + dd + '/>';
+    inner = '<polygon points="' + pts + '" fill="' + fi + '" stroke="' + sc + '" stroke-width="' + sw2 + '" ' + dd + '/>';
   } else if (s.type === 'line') {
     const mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2;
-    inner = '<line x1="' + Math.round(s.x1 - mx) + '" y1="' + Math.round(s.y1 - my) + '" x2="' + Math.round(s.x2 - mx) + '" y2="' + Math.round(s.y2 - my) + '" stroke="' + c + '" stroke-width="' + sw2 + '" ' + dd + '/>';
+    inner = '<line x1="' + Math.round(s.x1 - mx) + '" y1="' + Math.round(s.y1 - my) + '" x2="' + Math.round(s.x2 - mx) + '" y2="' + Math.round(s.y2 - my) + '" stroke="' + sc + '" stroke-width="' + sw2 + '" ' + dd + '/>';
   } else if (s.type === 'pen' && s.pts && s.pts.length > 1) {
     const d = s.pts.map((p, j) => (j === 0 ? 'M' : 'L') + Math.round(p.x - cx) + ',' + Math.round(p.y - cy)).join(' ');
-    inner = '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="' + sw2 + '" stroke-linecap="round" ' + dd + '/>';
+    inner = '<path d="' + d + '" fill="none" stroke="' + sc + '" stroke-width="' + sw2 + '" stroke-linecap="round" ' + dd + '/>';
   } else if (s.type === 'text') {
     const fam = s.fontFamily || 'sans-serif';
     const svgFam = (fam !== 'sans-serif' && fam !== 'serif')

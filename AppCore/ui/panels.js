@@ -2,6 +2,7 @@
 function syncProps() {
   const empty = document.getElementById('panel-empty');
   const props = document.getElementById('panel-props');
+  if (typeof syncStrokeSwatch === 'function') syncStrokeSwatch();
   if (!selected) {
     empty.style.display = 'flex';
     props.style.display = 'none';

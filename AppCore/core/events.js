@@ -412,25 +412,25 @@ cv.addEventListener('mouseup', e => {
   } else if (tool === 'rect' && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
     added = {
       type: 'rect', x: Math.min(sx, x), y: Math.min(sy, y), w: Math.abs(dx), h: Math.abs(dy),
-      color, sw, rr, rot, opa, dash, fill: doFill, scaleX: 1, scaleY: 1,
+      color, strokeColor, sw, rr, rot, opa, dash, fill: doFill, scaleX: 1, scaleY: 1,
       hidden: false, name: '四角形', layerId: getDrawableActiveLayerId()
     };
   } else if (tool === 'circle' && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
     added = {
       type: 'circle', cx: (sx + x) / 2, cy: (sy + y) / 2, rx: Math.abs(dx) / 2, ry: Math.abs(dy) / 2,
-      color, sw, rot, opa, dash, fill: doFill,
+      color, strokeColor, sw, rot, opa, dash, fill: doFill,
       hidden: false, name: '円', layerId: getDrawableActiveLayerId()
     };
   } else if (tool === 'triangle' && Math.hypot(dx, dy) > 10) {
     added = {
       type: 'triangle', cx: (sx + x) / 2, cy: (sy + y) / 2, r: Math.hypot(dx, dy) / 2,
-      color, sw, rot, opa, dash, fill: doFill, scaleX: 1, scaleY: 1,
+      color, strokeColor, sw, rot, opa, dash, fill: doFill, scaleX: 1, scaleY: 1,
       hidden: false, name: '三角形', layerId: getDrawableActiveLayerId()
     };
   } else if (tool === 'polygon' && Math.hypot(dx, dy) > 10) {
     added = {
       type: 'polygon', cx: (sx + x) / 2, cy: (sy + y) / 2, r: Math.hypot(dx, dy) / 2, sides,
-      color, sw, rot, opa, dash, fill: doFill, scaleX: 1, scaleY: 1,
+      color, strokeColor, sw, rot, opa, dash, fill: doFill, scaleX: 1, scaleY: 1,
       hidden: false, name: `${sides}角形`, layerId: getDrawableActiveLayerId()
     };
   } else if (tool === 'line' && Math.hypot(dx, dy) > 5) {

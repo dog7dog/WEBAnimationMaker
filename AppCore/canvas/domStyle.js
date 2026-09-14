@@ -62,13 +62,13 @@ function shapeToCssDecl(s, origin) {
   switch (s.type) {
     case 'rect':
       if (s.fill) inner.background = s.color;
-      if (stroke > 0) inner.border = stroke + 'px solid ' + s.color;
+      if (stroke > 0) inner.border = stroke + 'px solid ' + shapeStrokeColor(s);
       if (s.rr) inner['border-radius'] = Math.round(s.rr) + 'px';
       break;
 
     case 'circle':
       if (s.fill) inner.background = s.color;
-      if (stroke > 0) inner.border = stroke + 'px solid ' + s.color;
+      if (stroke > 0) inner.border = stroke + 'px solid ' + shapeStrokeColor(s);
       inner['border-radius'] = '50%';
       break;
 

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WEB Animation Maker</title>
-  <link rel="stylesheet" href="style.css?v=ui-merge-20260608-1">
+  <link rel="stylesheet" href="style.css?v=20260914-1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
@@ -82,6 +82,14 @@
 
       <!-- 塗りつぶし -->
       <label class="tb-chk"><input type="checkbox" id="fill-chk"> 塗り</label>
+
+      <!-- 枠線の色（四角形・円・三角形・多角形） -->
+      <div id="stroke-area" class="linked" title="枠線の色（四角形・円・三角形・多角形）">
+        <span class="tb-lbl">枠線</span>
+        <div id="cur-stroke" onclick="document.getElementById('stroke-picker').click()"></div>
+        <input type="color" id="stroke-picker" value="#3B8AE6">
+        <button class="tb-btn" id="stroke-link-btn" title="枠線を塗りと同じ色にする"><i class="ti ti-link"></i></button>
+      </div>
 
       <div class="tb-sep"></div>
 
@@ -340,28 +348,28 @@
   <!-- JSZip: ZIP形式MODのインストールに使用 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <!-- AppCore: 依存順に読み込む -->
-  <script src="./AppCore/core/state.js?v=20260810-1"></script>
-  <script src="./AppCore/canvas/shapes.js?v=20260810-1"></script>
-  <script src="./AppCore/canvas/renderer.js?v=20260810-1"></script>
+  <script src="./AppCore/core/state.js?v=20260914-1"></script>
+  <script src="./AppCore/canvas/shapes.js?v=20260914-1"></script>
+  <script src="./AppCore/canvas/renderer.js?v=20260914-1"></script>
   <script src="./AppCore/core/history.js?v=20260810-1"></script>
-  <script src="./AppCore/core/events.js?v=20260911-1"></script>
+  <script src="./AppCore/core/events.js?v=20260914-1"></script>
   <script src="./AppCore/io/project.js?v=20260810-1"></script>
-  <script src="./AppCore/ui/panels.js?v=20260810-1"></script>
+  <script src="./AppCore/ui/panels.js?v=20260914-1"></script>
   <script src="./AppCore/interactions/model.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/codegen-css.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/codegen-js.js?v=20260909-1"></script>
   <script src="./AppCore/features/image_import.js?v=20260911-1"></script>
   <script src="./AppCore/export/site_export.js?v=20260902-1"></script>
-  <script src="./AppCore/canvas/domStyle.js?v=20260902-1"></script>
+  <script src="./AppCore/canvas/domStyle.js?v=20260914-1"></script>
   <script src="./AppCore/canvas/dom-mirror.js?v=20260902-1"></script>
   <script src="./AppCore/interactions/apply.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/blockly-blocks.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/blockly-codegen.js?v=20260909-1"></script>
   <script src="./AppCore/interactions/coding-tab.js?v=20260902-1"></script>
   <script src="./AppCore/canvas/brush.js?v=20260810-1"></script>
-  <script src="./AppCore/ui/editor.js?v=20260810-3"></script>
-  <script src="./AppCore/ui/toolbar.js?v=20260810-1"></script>
-  <script src="./AppCore/mod/api.js?v=20260810-4"></script>
+  <script src="./AppCore/ui/editor.js?v=20260914-1"></script>
+  <script src="./AppCore/ui/toolbar.js?v=20260914-1"></script>
+  <script src="./AppCore/mod/api.js?v=20260914-1"></script>
   <script src="./AppCore/mod/loader.js?v=20260810-2"></script>
   <!-- AI Framework -->
   <script src="./AppCore/ai/ai_client.js?v=20260810-1"></script>

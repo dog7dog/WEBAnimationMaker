@@ -76,6 +76,18 @@ function wrapTextLines(text, fontFamily, fontSize, maxWidth) {
 }
 
 // ── レイヤー判定 ─────────────────────────────────────────────
+// 塗りと枠線を別々の色にできる図形
+const STROKE_COLOR_TYPES = ['rect', 'circle', 'triangle', 'polygon'];
+
+// 図形の枠線の色。strokeColor を持たない図形（枠線の色を分ける前に作った図形）や、
+// 線・ペンのように塗りが無い図形は、これまでどおり color で描く。
+// （MODの図形などに strokeColor が紛れ込んでも、線の色が変わらないようにしている）
+function shapeStrokeColor(s) {
+  if (!s) return '#fff';
+  if (s.strokeColor && STROKE_COLOR_TYPES.includes(s.type)) return s.strokeColor;
+  return s.color || '#fff';
+}
+
 function _is2d(s) { return !s.engine || s.engine === 'canvas2d'; }
 
 function _notifyLayerState(layerId, type, value) {

@@ -170,6 +170,7 @@ window.AnimationApp = {
 
     shapes.push({
       color,
+      strokeColor,
       sw,
       opa,
       dash,

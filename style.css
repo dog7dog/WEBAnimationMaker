@@ -149,6 +149,27 @@ body {
 
 #palette { display: flex; gap: 4px; }
 
+/* 枠線の色 */
+#stroke-area { display: flex; align-items: center; gap: 5px; margin-left: 10px; }
+#stroke-area .tb-lbl { font-size: 12px; color: var(--fg1); }
+#cur-stroke {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  /* 中を抜いた四角で「枠線」を表す（背景色が枠の色になる） */
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 5px;
+  box-sizing: border-box;
+}
+#stroke-picker { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+#stroke-link-btn { padding: 2px 5px; }
+/* 塗りと同じ色のときはリンクが有効な見た目にする */
+#stroke-area.linked #stroke-link-btn { color: var(--accent); }
+#stroke-area.disabled { opacity: 0.35; pointer-events: none; }
+
 .pdot {
   width: 18px;
   height: 18px;
