@@ -204,6 +204,26 @@ function _mlcWrapTrigger(spec, top, body) {
       + '})();\n';
   }
 
+  if (spec.noElement && spec.trigger === 'scrollpage') {
+    const pages = Math.max(0.1, Number(params.pages ?? 1));
+    return '(function () {\n'
+      + '  var last = null;\n'
+      + '  function check() {\n'
+      + '    var page = window.innerHeight * ' + pages + ';\n'
+      + '    if (!page) return;\n'
+      + '    var index = Math.floor(window.scrollY / page);\n'
+      + '    if (last === null) { last = index; return; }\n'
+      + '    if (index === last) return;\n'
+      + '    last = index;\n'
+      + '    (async function () {\n'
+      + _mlcIndent(body, '      ')
+      + '    })();\n'
+      + '  }\n'
+      + '  window.addEventListener("scroll", check, { passive: true });\n'
+      + '  check();\n'
+      + '})();\n';
+  }
+
   if (spec.noElement && spec.trigger === 'timer') {
     const sec = Math.max(0.05, Number(params.sec ?? 2));
     return 'setInterval(async function () {\n'

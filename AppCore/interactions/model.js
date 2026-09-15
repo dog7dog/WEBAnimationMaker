@@ -12,7 +12,7 @@
 // ══════════════════════════════════════════════════════════════
 
 const INTERACTION_TRIGGER_TYPES = [
-  'click', 'dblclick', 'hover', 'press', 'inview', 'load', 'key', 'scroll', 'timer'
+  'click', 'dblclick', 'hover', 'press', 'inview', 'load', 'key', 'scroll', 'scrollpage', 'timer'
 ];
 
 // アクションの種類。
@@ -39,7 +39,8 @@ const INTERACTION_TOGGLE_MODES = ['once', 'hold', 'toggle'];
 //   toggle: 状態クラスをON/OFFする（クリックでの開閉）
 const INTERACTION_DEFAULT_TOGGLE = {
   click: 'toggle', dblclick: 'toggle', hover: 'hold', press: 'hold',
-  inview: 'toggle', load: 'once', key: 'toggle', scroll: 'toggle', timer: 'toggle'
+  inview: 'toggle', load: 'once', key: 'toggle',
+  scroll: 'toggle', scrollpage: 'toggle', timer: 'toggle'
 };
 
 // 各アクションが書き込む先。競合検出に使う。

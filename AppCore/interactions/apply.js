@@ -109,6 +109,15 @@ function _runGeneratedJs(js) {
       const host = _interactionScrollHost();
       return host === window ? window.scrollX : host.scrollLeft;
     },
+    // 「1ページ＝画面1つ分」の高さも、プレビューではステージの外枠で測る
+    get innerHeight() {
+      const host = _interactionScrollHost();
+      return host === window ? window.innerHeight : host.clientHeight;
+    },
+    get innerWidth() {
+      const host = _interactionScrollHost();
+      return host === window ? window.innerWidth : host.clientWidth;
+    },
     // 「ページの先頭へ戻る」もステージの外枠に向ける
     scrollTo(...args) { _interactionScrollHost().scrollTo(...args); },
     // 「リンクを開く」はプレビューでも素直に新しいタブを開く

@@ -102,6 +102,32 @@ function generateInteractionJS(rules) {
       return;
     }
 
+    if (rule.trigger?.type === 'scrollpage') {
+      // 画面1つ分＝1ページ。その区切りを跨ぐたびに切り替える。
+      // 読み込んだ時点の位置を基準にするので、途中から始まるページでも
+      // いきなり1回ぶん進んだ扱いにはならない。
+      const pages = Math.max(0.1, Number(rule.trigger?.params?.pages ?? 1));
+      lines.push(
+        '(function () {\n' +
+        '  var t = document.querySelector(' + JSON.stringify(targetSel) + ');\n' +
+        '  if (!t) return;\n' +
+        '  var last = null;\n' +
+        '  function update() {\n' +
+        '    var page = window.innerHeight * ' + pages + ';\n' +
+        '    if (!page) return;\n' +
+        '    var index = Math.floor(window.scrollY / page);\n' +
+        '    if (last === null) { last = index; return; }\n' +
+        '    if (index === last) return;\n' +
+        '    last = index;\n' +
+        '    t.classList.toggle(' + JSON.stringify(activeCls) + ');\n' +
+        '  }\n' +
+        '  window.addEventListener("scroll", update, { passive: true });\n' +
+        '  update();\n' +
+        '})();'
+      );
+      return;
+    }
+
     if (rule.trigger?.type === 'timer') {
       const sec = Math.max(0.05, Number(rule.trigger?.params?.sec ?? 2));
       lines.push(

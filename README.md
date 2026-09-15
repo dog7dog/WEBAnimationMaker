@@ -90,7 +90,7 @@ docs/images/screenshot.png
 トリガー元と対象を分けて持っているので、
 **「ハンバーガーボタンを押したら別のメニューを開く」** のようなケースも作れます。
 
-### トリガー（9種）
+### トリガー（10種）
 
 |種類|意味|
 |----|----|
@@ -102,6 +102,7 @@ docs/images/screenshot.png
 |`load`|ページが表示されたとき|
 |`key`|キーが押されたとき|
 |`scroll`|指定した量までスクロールしたとき|
+|`scrollpage`|◯ページ（画面1つ分）ごとにスクロールしたとき|
 |`timer`|一定の間隔ごと|
 
 ### アクション（31ブロック）
@@ -155,7 +156,7 @@ docs/images/screenshot.png
 |----|----|----|
 |`once`|一度発火したら、その状態を維持する|`load`|
 |`hold`|条件が真のあいだだけ有効。外れたら自動で戻る|`hover` / `press`|
-|`toggle`|状態をON / OFFで切り替える|`click` / `dblclick` / `inview` / `key` / `scroll` / `timer`|
+|`toggle`|状態をON / OFFで切り替える|`click` / `dblclick` / `inview` / `key` / `scroll` / `scrollpage` / `timer`|
 
 それぞれのステップで、時間（duration）・遅延（delay）・イージング（easing）を設定できます。
 「ずっと動く」系では、時間の欄が1周にかかる秒数になります。

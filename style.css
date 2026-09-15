@@ -2700,14 +2700,16 @@ body {
 #mlc-stage-wrap {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* 中央寄せは align-items ではなく、ステージ側の margin:auto で行う。
+     align-items:center だと、ステージが画面より高いときに上へはみ出した分が
+     スクロールで戻れなくなる（縦長のページで上半分が見られなくなる）。 */
   overflow: auto;
   padding: 16px;
 }
 #mlc-stage {
   position: relative;
   flex: none;
+  margin: auto;
   box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
   border-radius: 4px;
   overflow: hidden;

@@ -102,6 +102,12 @@ const MLC_TRIGGER_BLOCKS = {
     parts: ['ページを', { num: 'PX', def: 200, min: 0, max: 20000, step: 10 }, 'px スクロールしたとき'],
     toTriggerParams: b => ({ px: Number(b.getFieldValue('PX')) })
   },
+  // 画面1つ分を「1ページ」として、その倍数を通過するたびに切り替わる
+  mlc_when_scroll_page: {
+    trigger: 'scrollpage', toggleMode: 'toggle', noElement: true,
+    parts: [{ num: 'PAGES', def: 1, min: 0.1, max: 50, step: 0.1 }, 'ページごとにスクロールしたとき'],
+    toTriggerParams: b => ({ pages: Number(b.getFieldValue('PAGES')) })
+  },
   mlc_when_timer: {
     trigger: 'timer', toggleMode: 'toggle', noElement: true,
     parts: [{ num: 'SEC', def: 2, min: 0.1, max: 600, step: 0.1 }, '秒ごとに'],
