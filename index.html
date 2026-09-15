@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WEB Animation Maker</title>
-  <link rel="stylesheet" href="style.css?v=20260914-2">
+  <link rel="stylesheet" href="style.css?v=20260915-1">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
@@ -211,8 +211,15 @@
         <canvas id="ruler-h"></canvas>
         <canvas id="ruler-v"></canvas>
         <div id="cv-wrap">
+          <!-- スクロールできる範囲を決めるだけの箱（キャンバスの表示サイズ＋下の余白） -->
+          <div id="cv-extent" aria-hidden="true"></div>
           <canvas id="cv"></canvas>
           <canvas id="cv-three" aria-hidden="true"></canvas>
+          <!-- ページの下端。下へ引くとページが長くなる -->
+          <div id="cv-resize-handle" title="下へドラッグしてページを長くする（ダブルクリックで中身に合わせる）">
+            <span class="cv-rh-grip"></span>
+            <span class="cv-rh-size" id="cv-rh-size"></span>
+          </div>
         </div>
       </div>
 
@@ -347,8 +354,8 @@
   <!-- AppCore: 依存順に読み込む -->
   <script src="./AppCore/core/state.js?v=20260914-1"></script>
   <script src="./AppCore/canvas/shapes.js?v=20260914-1"></script>
-  <script src="./AppCore/canvas/renderer.js?v=20260914-1"></script>
-  <script src="./AppCore/core/history.js?v=20260914-3"></script>
+  <script src="./AppCore/canvas/renderer.js?v=20260915-1"></script>
+  <script src="./AppCore/core/history.js?v=20260915-1"></script>
   <script src="./AppCore/core/events.js?v=20260914-1"></script>
   <script src="./AppCore/io/project.js?v=20260810-1"></script>
   <script src="./AppCore/ui/panels.js?v=20260914-3"></script>
@@ -372,10 +379,11 @@
   <script src="./AppCore/ai/ai_client.js?v=20260810-1"></script>
   <script src="./AppCore/ai/ai_apply.js?v=20260810-1"></script>
   <script src="./AppCore/ai/ai_panel.js?v=20260810-1"></script>
-  <script src="./AppCore/app.js?v=20260911-1"></script>
+  <script src="./AppCore/app.js?v=20260915-1"></script>
   <!-- Feature Pack -->
   <script src="./AppCore/features/edit_tools.js?v=20260914-2"></script>
-  <script src="./AppCore/features/viewport.js?v=20260810-1"></script>
+  <script src="./AppCore/features/page_resize.js?v=20260915-1"></script>
+  <script src="./AppCore/features/viewport.js?v=20260915-1"></script>
   <script src="./AppCore/features/command_palette.js?v=20260911-1"></script>
   <script src="./AppCore/features/autosave.js?v=20260810-1"></script>
   <script src="./AppCore/features/feature_toolbar.js?v=20260810-1"></script>

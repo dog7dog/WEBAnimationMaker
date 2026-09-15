@@ -97,6 +97,8 @@ function mpApplyZoom() {
   cvEl.style.transform = t;
   if (three) { three.style.transformOrigin = 'top left'; three.style.transform = t; }
   if (threeOverlay) { threeOverlay.style.transformOrigin = 'top left'; threeOverlay.style.transform = t; }
+  // 拡大後の大きさに合わせて、下端バーとスクロール範囲を置き直す
+  if (typeof syncCanvasExtent === 'function') syncCanvasExtent();
   mpUpdateZoomBadge();
 }
 function mpSetZoom(z) {
@@ -115,8 +117,11 @@ function mpFitToWrap(opts = {}) {
   if (!wrap || typeof docW !== 'number' || typeof docH !== 'number') return;
   const ww = wrap.offsetWidth, wh = wrap.offsetHeight;
   if (ww < 10 || wh < 10 || docW < 1 || docH < 1) return;
+  // 幅に合わせる。縦は長いページを作れるようになったので基準にしない
+  // （高さも見ると、縦長のページを開いた瞬間に極端な縮小になってしまう）。
+  // 画面に収まらない分はスクロールして見る。
   // 決めたキャンバスサイズ以上には拡大しない（ウィンドウの方が大きい場合は等倍のまま）
-  const fit = Math.min(1, ww / docW, wh / docH);
+  const fit = Math.min(1, ww / docW);
   mpView.zoom = Math.max(0.02, fit);
   mpApplyZoom();
   if (!opts.silent) setStatus('画面に合わせて表示 ' + Math.round(mpView.zoom * 100) + '%');
@@ -132,7 +137,9 @@ function mpZoomReset() {
 function mpUpdateZoomBadge() {
   let badge = document.getElementById('mp-zoom-badge');
   if (!badge) {
-    const wrap = document.getElementById('cv-wrap');
+    // #cv-wrap はスクロールするので、そこへ入れるとバッジも一緒に流れてしまう。
+    // スクロールしない外側（#canvas-area）に置いて、常に隅に見えるようにする。
+    const wrap = document.getElementById('canvas-area') || document.getElementById('cv-wrap');
     if (!wrap) return;
     badge = document.createElement('div');
     badge.id = 'mp-zoom-badge';

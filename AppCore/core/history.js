@@ -8,6 +8,8 @@ function snapshot() {
     multiSelectedIds: multiSelected.slice(),
     FPS,
     canvasBg,
+    docW,
+    docH,
     layers: layers.map(l => ({ ...l })),
     activeLayerId,
   });
@@ -24,6 +26,14 @@ function restore(data) {
 
   if (state.FPS != null)      FPS      = state.FPS;
   if (state.canvasBg != null) canvasBg = state.canvasBg;
+  // ページの高さ・幅も戻す（下端バーで伸ばした分を⌘Zで取り消せるように）
+  if (Number(state.docW) > 0 && Number(state.docH) > 0
+      && (state.docW !== docW || state.docH !== docH)) {
+    docW = state.docW;
+    docH = state.docH;
+    try { localStorage.setItem('mpDocW', String(docW)); localStorage.setItem('mpDocH', String(docH)); } catch (e) {}
+    if (typeof resizeCanvas === 'function') resizeCanvas();
+  }
   if (state.layers?.length) {
     layers.length = 0;
     layers.push(...state.layers);

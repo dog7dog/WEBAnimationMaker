@@ -16,6 +16,8 @@ function resizeCanvas() {
   }
   redraw();
   if (typeof drawRulers === 'function') drawRulers();
+  // ドキュメントサイズが変わったら、下端バーとスクロール範囲も合わせる
+  if (typeof syncCanvasExtent === 'function') syncCanvasExtent();
 }
 
 // ResizeObserver でレイアウト確定後に確実にリサイズ
