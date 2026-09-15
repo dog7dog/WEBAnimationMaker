@@ -171,6 +171,21 @@ function _interactionActionsToProps(actions, useFrom) {
 // ずっと繰り返す演出の中身。[パーセント, { プロパティ: 値 }] の並びを返す。
 // 中身はどれもCSS変数なので、transform/filterの合成（他のアクションとの共存）が
 // そのまま効く。1周期の長さは steps[0].duration が決める。
+function _interactionOffset(params, defDx, defDy) {
+  const dx = Number(params?.dx);
+  const dy = Number(params?.dy);
+  return {
+    dx: Number.isFinite(dx) ? dx : defDx,
+    dy: Number.isFinite(dy) ? dy : defDy
+  };
+}
+
+// 位置ずらしの1コマ分。横・縦をいつも組で出すので、
+// 斜めに動かしても片方だけ前のコマの値が残るということがない。
+function _interactionShift(dx, dy) {
+  return { '--mlc-tx': Math.round(dx * 100) / 100 + 'px', '--mlc-ty': Math.round(dy * 100) / 100 + 'px' };
+}
+
 const INTERACTION_LOOP_FRAMES = {
   pulse: p => {
     const to = Number(p?.to ?? 1.1);
@@ -180,15 +195,17 @@ const INTERACTION_LOOP_FRAMES = {
     const deg = Number(p?.deg ?? 360);
     return [[0, { '--mlc-rot': '0deg' }], [100, { '--mlc-rot': deg + 'deg' }]];
   },
+  // 横dx・縦dy ぶんだけ動いて戻る
   float: p => {
-    const d = Number(p?.dist ?? 12);
-    return [[0, { '--mlc-ty': '0px' }], [50, { '--mlc-ty': (-d) + 'px' }], [100, { '--mlc-ty': '0px' }]];
+    const { dx, dy } = _interactionOffset(p, 0, -12);
+    return [[0, _interactionShift(0, 0)], [50, _interactionShift(dx, dy)], [100, _interactionShift(0, 0)]];
   },
+  // 指定した向きに往復する
   shake: p => {
-    const d = Number(p?.dist ?? 8);
+    const { dx, dy } = _interactionOffset(p, 8, 0);
     return [
-      [0, { '--mlc-tx': '0px' }], [25, { '--mlc-tx': (-d) + 'px' }],
-      [75, { '--mlc-tx': d + 'px' }], [100, { '--mlc-tx': '0px' }]
+      [0, _interactionShift(0, 0)], [25, _interactionShift(-dx, -dy)],
+      [75, _interactionShift(dx, dy)], [100, _interactionShift(0, 0)]
     ];
   },
   swing: p => {
@@ -202,12 +219,13 @@ const INTERACTION_LOOP_FRAMES = {
     const to = Number(p?.to ?? 0.2);
     return [[0, { opacity: '1' }], [50, { opacity: String(to) }], [100, { opacity: '1' }]];
   },
+  // 指定した所まで跳んで、小さくもう一度跳ねる
   bounce: p => {
-    const d = Number(p?.dist ?? 20);
+    const { dx, dy } = _interactionOffset(p, 0, -20);
     return [
-      [0, { '--mlc-ty': '0px' }], [30, { '--mlc-ty': (-d) + 'px' }],
-      [50, { '--mlc-ty': '0px' }], [70, { '--mlc-ty': (-d * 0.4) + 'px' }],
-      [100, { '--mlc-ty': '0px' }]
+      [0, _interactionShift(0, 0)], [30, _interactionShift(dx, dy)],
+      [50, _interactionShift(0, 0)], [70, _interactionShift(dx * 0.4, dy * 0.4)],
+      [100, _interactionShift(0, 0)]
     ];
   }
 };

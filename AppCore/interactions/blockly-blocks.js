@@ -49,23 +49,19 @@ const MLC_EASING_OPTIONS = [
   ['一定速度', 'linear']
 ];
 
-// 「どの向きから出てくるか」→ 開始位置のオフセット
-const MLC_SLIDE_FROM = {
-  bottom: { dx: 0, dy: 40 },
-  top: { dx: 0, dy: -40 },
-  left: { dx: -40, dy: 0 },
-  right: { dx: 40, dy: 0 }
-};
+// 動きの指定は「横◯px 縦◯px」に統一する。
+//   横: 右が＋ / 左が−
+//   縦: 下が＋ / 上が−
+// 動かす向きと量を1か所で読めるようにするため、方向メニューは使わない。
+function _mlcMoveParts(label, defDx, defDy, tail) {
+  return [{ el: 'TARGET_EL' }, label,
+    ' 横', { num: 'DX', def: defDx, min: -4000, max: 4000, step: 1 }, 'px',
+    ' 縦', { num: 'DY', def: defDy, min: -4000, max: 4000, step: 1 }, 'px', tail];
+}
 
-// 「どの向きへ消えるか」→ 終了位置のオフセット。出てくるときより大きく振る。
-const MLC_SLIDE_TO = {
-  bottom: { dx: 0, dy: 80 },
-  top: { dx: 0, dy: -80 },
-  left: { dx: -80, dy: 0 },
-  right: { dx: 80, dy: 0 }
-};
-
-const MLC_DIRECTION_OPTIONS = [['下', 'bottom'], ['上', 'top'], ['左', 'left'], ['右', 'right']];
+function _mlcMoveValues(b) {
+  return { dx: Number(b.getFieldValue('DX')), dy: Number(b.getFieldValue('DY')) };
+}
 
 // ── トリガー ─────────────────────────────────────────────────
 //   noElement: トリガー元の図形を持たないもの（ページ表示・キー入力）。
@@ -128,9 +124,8 @@ const MLC_ACTION_BLOCKS = {
   },
   mlc_action_move: {
     action: 'move', category: 'action',
-    parts: [{ el: 'TARGET_EL' }, 'を 横', { num: 'DX', def: 100, min: -2000, max: 2000, step: 1 },
-      ' 縦', { num: 'DY', def: 0, min: -2000, max: 2000, step: 1 }, ' 動かす'],
-    toParams: b => ({ dx: Number(b.getFieldValue('DX')), dy: Number(b.getFieldValue('DY')) })
+    parts: _mlcMoveParts('を', 100, 0, ' 動かす'),
+    toParams: _mlcMoveValues
   },
   mlc_action_rotate: {
     action: 'rotate', category: 'action',
@@ -194,10 +189,11 @@ const MLC_ACTION_BLOCKS = {
     parts: [{ el: 'TARGET_EL' }, 'をフェードインさせる'],
     toParams: () => ({ to: 1, from: { to: 0 } })
   },
+  // ずれた位置から元の位置へ滑り込ませる（既定は40px下から）
   mlc_action_slide_in: {
     action: 'slide', category: 'entrance',
-    parts: [{ el: 'TARGET_EL' }, 'を', { menu: 'DIR', options: MLC_DIRECTION_OPTIONS }, 'から出す'],
-    toParams: b => ({ dx: 0, dy: 0, from: MLC_SLIDE_FROM[b.getFieldValue('DIR')] || MLC_SLIDE_FROM.bottom })
+    parts: _mlcMoveParts('を', 0, 40, ' の所から出す'),
+    toParams: b => ({ dx: 0, dy: 0, from: _mlcMoveValues(b) })
   },
   mlc_action_zoom_in: {
     action: 'scale', category: 'entrance',
@@ -250,14 +246,11 @@ const MLC_ACTION_BLOCKS = {
   },
   mlc_action_slide_out: {
     action: 'slide', category: 'exit',
-    parts: [{ el: 'TARGET_EL' }, 'を', { menu: 'DIR', options: MLC_DIRECTION_OPTIONS }, 'へ消す'],
-    toActions: b => {
-      const off = MLC_SLIDE_TO[b.getFieldValue('DIR')] || MLC_SLIDE_TO.bottom;
-      return [
-        { type: 'slide', params: { dx: off.dx, dy: off.dy } },
-        { type: 'fade', params: { to: 0 } }
-      ];
-    }
+    parts: _mlcMoveParts('を', 0, 80, ' 動かして消す'),
+    toActions: b => ([
+      { type: 'slide', params: _mlcMoveValues(b) },
+      { type: 'fade', params: { to: 0 } }
+    ])
   },
 
   // ずっと繰り返す演出。時間の欄は「1周にかかる秒数」になる。
@@ -275,15 +268,13 @@ const MLC_ACTION_BLOCKS = {
   },
   mlc_loop_float: {
     action: 'float', category: 'loop', duration: 2.4, easing: 'ease-in-out',
-    parts: [{ el: 'TARGET_EL' }, 'をゆらゆら浮かせる',
-      { num: 'DIST', def: 12, min: 1, max: 400, step: 1 }, 'px'],
-    toParams: b => ({ dist: Number(b.getFieldValue('DIST')) })
+    parts: _mlcMoveParts('を', 0, -12, ' まで ゆらゆら動かす'),
+    toParams: _mlcMoveValues
   },
   mlc_loop_shake: {
     action: 'shake', category: 'loop', duration: 0.5, easing: 'ease-in-out',
-    parts: [{ el: 'TARGET_EL' }, 'を横に揺らし続ける',
-      { num: 'DIST', def: 8, min: 1, max: 400, step: 1 }, 'px'],
-    toParams: b => ({ dist: Number(b.getFieldValue('DIST')) })
+    parts: _mlcMoveParts('を', 8, 0, ' の幅で 揺らし続ける'),
+    toParams: _mlcMoveValues
   },
   mlc_loop_swing: {
     action: 'swing', category: 'loop', duration: 1.6, easing: 'ease-in-out',
@@ -299,9 +290,8 @@ const MLC_ACTION_BLOCKS = {
   },
   mlc_loop_bounce: {
     action: 'bounce', category: 'loop', duration: 1, easing: 'ease-out',
-    parts: [{ el: 'TARGET_EL' }, 'を跳ねさせる',
-      { num: 'DIST', def: 20, min: 1, max: 400, step: 1 }, 'px'],
-    toParams: b => ({ dist: Number(b.getFieldValue('DIST')) })
+    parts: _mlcMoveParts('を', 0, -20, ' まで 跳ねさせる'),
+    toParams: _mlcMoveValues
   }
 };
 

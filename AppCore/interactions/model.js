@@ -72,12 +72,13 @@ const INTERACTION_ACTION_PROPERTY = {
 // 後のものだけが残る（'animation' の枠で衝突させる）。
 // あわせて「動かしている変数」も申告しておくと、
 // 「ずっと回る」と「クリックで回す」のような食い合いも拾える。
-const INTERACTION_LOOP_VAR = {
-  pulse: '--mlc-scale', spin: '--mlc-rot', float: '--mlc-ty',
-  shake: '--mlc-tx', swing: '--mlc-rot', blink: 'opacity', bounce: '--mlc-ty'
+const INTERACTION_LOOP_VARS = {
+  pulse: ['--mlc-scale'], spin: ['--mlc-rot'], swing: ['--mlc-rot'], blink: ['opacity'],
+  // 横・縦の両方を動かせるので、どちらの変数も申告する
+  float: ['--mlc-tx', '--mlc-ty'], shake: ['--mlc-tx', '--mlc-ty'], bounce: ['--mlc-tx', '--mlc-ty']
 };
 INTERACTION_LOOP_ACTION_TYPES.forEach(type => {
-  INTERACTION_ACTION_PROPERTY[type] = ['animation', INTERACTION_LOOP_VAR[type]];
+  INTERACTION_ACTION_PROPERTY[type] = ['animation'].concat(INTERACTION_LOOP_VARS[type]);
 });
 
 // 競合の警告文で使う、変数名の言い換え
@@ -117,11 +118,12 @@ function defaultActionParams(actionType) {
     // ずっと動く系（振れ幅。周期は steps[0].duration）
     case 'pulse': return { to: 1.1 };
     case 'spin': return { deg: 360 };
-    case 'float': return { dist: 12 };
-    case 'shake': return { dist: 8 };
+    // 動く量は移動と同じ「横dx・縦dy」で持つ
+    case 'float': return { dx: 0, dy: -12 };
+    case 'shake': return { dx: 8, dy: 0 };
     case 'swing': return { deg: 8 };
     case 'blink': return { to: 0.2 };
-    case 'bounce': return { dist: 20 };
+    case 'bounce': return { dx: 0, dy: -20 };
     default: return {};
   }
 }
