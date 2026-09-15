@@ -1330,7 +1330,13 @@ body {
 }
 #cv-resize-handle:hover .cv-rh-grip,
 #cv-resize-handle.dragging .cv-rh-grip { background: var(--accent); width: 84px; }
+/* サイズ表示は流れから外す。並べて置くと、隠れている間も場所を取って
+   掴み線が中央からずれるため（バーの右端に固定する）。 */
 #cv-resize-handle .cv-rh-size {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   font: 10px monospace;
   color: var(--fg1);
   background: rgba(0, 0, 0, 0.7);
@@ -1338,6 +1344,7 @@ body {
   padding: 1px 5px;
   opacity: 0;
   transition: opacity 0.12s;
+  pointer-events: none;
 }
 #cv-resize-handle:hover .cv-rh-size,
 #cv-resize-handle.dragging .cv-rh-size { opacity: 1; }
