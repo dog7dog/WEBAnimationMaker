@@ -452,8 +452,10 @@ function drawRulers() {
 
   const wrap = document.getElementById('cv-wrap');
   const zoom = (typeof mpView !== 'undefined' && mpView.zoom) || 1;
-  const scrollLeft = wrap ? wrap.scrollLeft : 0;
-  const scrollTop = wrap ? wrap.scrollTop : 0;
+  // キャンバスは中央寄せで置いてあるので、その分だけ目盛りもずらす
+  const off = typeof canvasViewOffset === 'function' ? canvasViewOffset() : { x: 0, y: 0 };
+  const scrollLeft = (wrap ? wrap.scrollLeft : 0) - off.x;
+  const scrollTop = (wrap ? wrap.scrollTop : 0) - off.y;
 
   // ルーラーの解像度は「自分自身の実表示サイズ」に合わせる。
   // 以前は cv.width/height をそのまま流用していたが、キャンバスの解像度
@@ -574,8 +576,10 @@ function showCoordsTip(x, y) {
     ? `x:${Math.round(x)} y:${Math.round(y)}  |  ${selected.name} ${Math.round(b.w)}×${Math.round(b.h)}`
     : `x:${Math.round(x)} y:${Math.round(y)}`;
   coordsTip.style.display = 'block';
-  coordsTip.style.left = (x + RULER_SZ + 10) + 'px';
-  coordsTip.style.top = (y + RULER_SZ + 4) + 'px';
+  // キャンバスの置き位置とズームを通した、実際の見た目の位置に出す
+  const p = typeof canvasPointToWrap === 'function' ? canvasPointToWrap(x, y) : { x, y };
+  coordsTip.style.left = (p.x + 12) + 'px';
+  coordsTip.style.top = (p.y + 6) + 'px';
 }
 
 function hideCoordsTip() {

@@ -115,7 +115,9 @@ function mpZoomOut() { mpSetZoom(mpView.zoom / 1.2); setStatus('ズーム ' + Ma
 function mpFitToWrap(opts = {}) {
   const wrap = document.getElementById('cv-wrap');
   if (!wrap || typeof docW !== 'number' || typeof docH !== 'number') return;
-  const ww = wrap.offsetWidth, wh = wrap.offsetHeight;
+  // 左右の余白を残した幅に収める（キャンバスは中央寄せで置いている）
+  const side = (typeof PAGE_SIDE_MARGIN === 'number' ? PAGE_SIDE_MARGIN : 24) * 2;
+  const ww = wrap.clientWidth - side, wh = wrap.clientHeight;
   if (ww < 10 || wh < 10 || docW < 1 || docH < 1) return;
   // 幅に合わせる。縦は長いページを作れるようになったので基準にしない
   // （高さも見ると、縦長のページを開いた瞬間に極端な縮小になってしまう）。

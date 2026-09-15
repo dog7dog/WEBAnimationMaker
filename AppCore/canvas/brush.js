@@ -63,10 +63,13 @@ function updateBrushCursor(x, y) {
     const wrap = document.getElementById('cv-wrap') || area;
     wrap.appendChild(el);
   }
-  el.style.width = brushSize + 'px';
-  el.style.height = brushSize + 'px';
-  el.style.left = x + 'px';
-  el.style.top = y + 'px';
+  // キャンバスの置き位置とズームに合わせる（中央寄せ・拡大時もペン先とズレない）
+  const z = (typeof mpView !== 'undefined' && mpView.zoom) || 1;
+  const p = typeof canvasPointToWrap === 'function' ? canvasPointToWrap(x, y) : { x, y };
+  el.style.width = (brushSize * z) + 'px';
+  el.style.height = (brushSize * z) + 'px';
+  el.style.left = p.x + 'px';
+  el.style.top = p.y + 'px';
   el.style.display = 'block';
 }
 

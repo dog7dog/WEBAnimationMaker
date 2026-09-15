@@ -1298,12 +1298,6 @@ body {
      wrapのサイズより小さい/大きい場合があるため、輪郭を縁取って
      どこまでが実際のキャンバスかを分かりやすくする */
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
-  /* スクロール範囲は #cv-extent だけで決める。
-     ズームは transform なので、#cv の「置き場所」は実サイズのままで
-     拡大後の見た目と食い違う。レイアウトから外して食い違いをなくす。 */
-  position: absolute;
-  top: 0;
-  left: 0;
 }
 
 /* スクロールできる範囲（見えない） */
@@ -1399,13 +1393,17 @@ body {
 }
 
 
-/* 修正: 定規表示時は grid の cv-wrap だけで位置決めする。
-   古い absolute オフセットを無効化して、キャンバス/SVGの二重ずれを防ぐ。 */
 #cv-wrap { position: relative; }
+/* キャンバスの置き場所は page_resize.js が決める（左右中央＋余白）。
+   スクロールできる範囲は #cv-extent が表すので、キャンバス自身は
+   レイアウトから外しておく。ズームは transform なので、レイアウトに
+   残すと実寸のままになり、拡大後の見た目と食い違うため。
+   （以前はここで position:static を強制していたが、置き場所を決めるのが
+     1か所になったので、その打ち消しはもう要らない） */
 #cv-wrap #cv {
-  position: static !important;
-  top: auto !important;
-  left: auto !important;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 #je-svg-overlay {
   position: absolute;
@@ -1747,7 +1745,7 @@ body {
 #zip-sec-ok:hover { background: #d97706; }
 
 #cv {
-  position: relative;
+  /* 置き場所は上の #cv-wrap #cv が持つ。ここは重なり順だけ。 */
   z-index: 2;
 }
 

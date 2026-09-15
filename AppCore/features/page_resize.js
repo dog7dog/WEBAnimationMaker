@@ -13,10 +13,45 @@ const PAGE_MIN_HEIGHT = 80;
 const PAGE_MAX_HEIGHT = 20000;
 const PAGE_RESIZE_STEP = 10;    // 10px刻み（Shiftを押している間は1px）
 const PAGE_BOTTOM_MARGIN = 64;  // バーの下に残す余白（掴みやすさと、伸ばす余地）
+const PAGE_SIDE_MARGIN = 24;    // キャンバスの左右に残す余白
+const PAGE_TOP_MARGIN = 16;     // キャンバスの上に残す余白
 
 function _pageZoom() {
   return (typeof mpView !== 'undefined' && mpView.zoom) || 1;
 }
+
+// 拡大後のキャンバスの大きさ（画面上のpx）
+function _pageViewSize() {
+  const z = _pageZoom();
+  return {
+    w: Math.round((typeof docW === 'number' ? docW : 1280) * z),
+    h: Math.round((typeof docH === 'number' ? docH : 720) * z)
+  };
+}
+
+// キャンバスを #cv-wrap のどこに置くか（スクロールする中身の中での位置）。
+//   横: 余白ぶんの余裕があれば中央。無ければ左に余白だけ空けてスクロールさせる。
+//   縦: ページは上から下へ伸びるので、上端をそろえて少しだけ余白を空ける。
+// 定規の目盛りもこの位置を基準にするので、ズレないよう1か所にまとめてある。
+function canvasViewOffset() {
+  const wrap = document.getElementById('cv-wrap');
+  const { w } = _pageViewSize();
+  const clientW = wrap ? wrap.clientWidth : w;
+  const x = clientW >= w + PAGE_SIDE_MARGIN * 2
+    ? Math.round((clientW - w) / 2)
+    : PAGE_SIDE_MARGIN;
+  return { x, y: PAGE_TOP_MARGIN };
+}
+window.canvasViewOffset = canvasViewOffset;
+
+// キャンバス上の座標 → #cv-wrap の中での位置（px）。
+// キャンバスに重ねて出すもの（ブラシの丸、座標の吹き出し）の置き場所に使う。
+function canvasPointToWrap(x, y) {
+  const z = _pageZoom();
+  const off = canvasViewOffset();
+  return { x: off.x + x * z, y: off.y + y * z };
+}
+window.canvasPointToWrap = canvasPointToWrap;
 
 // キャンバスの表示サイズに合わせて、下端バーとスクロール範囲を置き直す。
 // docW/docH やズームが変わるたびに呼ぶ（resizeCanvas / mpApplyZoom から）。
@@ -25,14 +60,23 @@ function syncCanvasExtent() {
   const extent = document.getElementById('cv-extent');
   if (!handle || !extent) return;
 
-  const z = _pageZoom();
-  const w = Math.round((typeof docW === 'number' ? docW : 1280) * z);
-  const h = Math.round((typeof docH === 'number' ? docH : 720) * z);
+  const { w, h } = _pageViewSize();
+  const off = canvasViewOffset();
 
-  extent.style.width = w + 'px';
-  extent.style.height = (h + PAGE_BOTTOM_MARGIN) + 'px';
+  // キャンバス本体（と、重ねてあるWebGL用）を置く
+  const cvEl = document.getElementById('cv');
+  const three = document.getElementById('cv-three');
+  [cvEl, three].forEach(el => {
+    if (!el) return;
+    el.style.left = off.x + 'px';
+    el.style.top = off.y + 'px';
+  });
+
+  extent.style.width = (off.x + w + PAGE_SIDE_MARGIN) + 'px';
+  extent.style.height = (off.y + h + PAGE_BOTTOM_MARGIN) + 'px';
+  handle.style.left = off.x + 'px';
   handle.style.width = w + 'px';
-  handle.style.top = h + 'px';
+  handle.style.top = (off.y + h) + 'px';
 
   const label = document.getElementById('cv-rh-size');
   if (label) label.textContent = (docW || 0) + ' × ' + (docH || 0);
