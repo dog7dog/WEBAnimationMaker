@@ -86,6 +86,11 @@ let canvasBg = '#111111';
 let docW = Number(localStorage.getItem('mpDocW')) || 1280;
 let docH = Number(localStorage.getItem('mpDocH')) || 720;
 
+// 見る人の画面1つ分の高さ。「◯ページごとにスクロールしたとき」が
+// 実際に使うのは見る人のブラウザの高さなので、ここで決めるのは
+// デザイン中に区切り線をどこへ引くかという目安。
+let pageViewHeight = Number(localStorage.getItem('mpPageViewH')) || 720;
+
 // コピペ
 let clipboard = null;
 

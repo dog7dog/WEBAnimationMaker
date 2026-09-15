@@ -2564,6 +2564,36 @@ body {
 .mp-menu-row button { flex: 1; padding: 0 6px; }
 
 /* ── ズームバッジ ── */
+/* ページの区切り線の操作（キャンバスの左下） */
+#mp-page-badge {
+  position: absolute; bottom: 10px; left: 10px;
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(30, 30, 35, .85); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 3px 8px 3px 3px; z-index: 20;
+  backdrop-filter: blur(4px);
+}
+#mp-page-badge.off { opacity: 0.55; }
+#mp-page-badge button {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; color: var(--accent); cursor: pointer; font-size: 13px; border-radius: 4px;
+}
+#mp-page-badge.off button { color: var(--fg3); }
+#mp-page-badge button:hover { background: var(--bg3); }
+#mp-page-badge .mp-page-lbl { font-size: 11px; color: var(--fg2); }
+#mp-page-badge input {
+  width: 52px; height: 22px; text-align: right;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  color: var(--fg0); font: 11px monospace; padding: 0 4px;
+  -moz-appearance: textfield;
+}
+#mp-page-badge input::-webkit-inner-spin-button,
+#mp-page-badge input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#mp-page-badge input:focus { outline: none; border-color: var(--accent); }
+#mp-page-count {
+  font: 10px monospace; color: var(--fg3);
+  border-left: 1px solid var(--border2); padding-left: 7px; margin-left: 2px;
+}
+
 #mp-zoom-badge {
   position: absolute; bottom: 10px; right: 10px;
   display: flex; align-items: center; gap: 2px;

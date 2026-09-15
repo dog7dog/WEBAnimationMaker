@@ -33,6 +33,8 @@ function mpInstallRedrawHook() {
   window.redraw = function () {
     _mpOrigRedraw();
     if (mpView.grid) mpDrawGrid();
+    // ページの区切り線（1画面ぶんごと）
+    if (typeof drawPageGuides === 'function') drawPageGuides();
   };
   // グローバル参照も更新（他モジュールが redraw を直接呼ぶ場合に備える）
   try { redraw = window.redraw; } catch (e) {}

@@ -80,6 +80,7 @@ function syncCanvasExtent() {
 
   const label = document.getElementById('cv-rh-size');
   if (label) label.textContent = (docW || 0) + ' × ' + (docH || 0);
+  _syncPageBadge();
 }
 
 // 高さを変える。実際に変わったら true。
@@ -116,6 +117,102 @@ function fitPageHeightToContent() {
   if (setPageHeight(Math.ceil(bottom) + 40)) _commitPageHeight();
   if (typeof toast === 'function') toast('ti-arrows-vertical', '中身に合わせました: ' + docH + 'px');
 }
+
+// ══════════════════════════════════════════════════════════════
+// ページの区切り線
+//   「1ページ＝画面1つ分」がどこで折り返すのかを、デザイン中に見せる。
+//   実際に見る人の画面の高さは分からないので、pageViewHeight を目安にする。
+//   あわせて各線に px も出して、「ここが何px地点か」を読めるようにする。
+// ══════════════════════════════════════════════════════════════
+
+let showPageGuides = localStorage.getItem('mpPageGuides') !== '0';
+
+function drawPageGuides() {
+  if (!showPageGuides) return;
+  const step = Number(pageViewHeight) || 0;
+  if (step < 40 || typeof ctx === 'undefined' || !ctx) return;
+
+  ctx.save();
+  ctx.lineWidth = 1;
+  for (let n = 1; n * step < cv.height; n++) {
+    const y = n * step;
+    ctx.setLineDash([9, 6]);
+    ctx.strokeStyle = 'rgba(120, 190, 255, 0.55)';
+    ctx.beginPath();
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(cv.width, y + 0.5);
+    ctx.stroke();
+
+    // 「ここから2ページ目 / 720px」と、左端に小さく出す
+    const label = (n + 1) + 'ページ目  ' + y + 'px';
+    ctx.setLineDash([]);
+    ctx.font = '11px monospace';
+    const w = ctx.measureText(label).width + 12;
+    ctx.fillStyle = 'rgba(16, 26, 38, 0.82)';
+    ctx.fillRect(6, y + 4, w, 17);
+    ctx.fillStyle = 'rgba(150, 205, 255, 0.95)';
+    ctx.textBaseline = 'top';
+    ctx.fillText(label, 12, y + 7);
+  }
+  ctx.restore();
+}
+
+function setPageViewHeight(h) {
+  const next = Math.max(40, Math.min(PAGE_MAX_HEIGHT, Math.round(Number(h) || 0)));
+  pageViewHeight = next;
+  try { localStorage.setItem('mpPageViewH', String(next)); } catch (e) { /* noop */ }
+  if (typeof redraw === 'function') redraw();
+  _syncPageBadge();
+}
+
+function togglePageGuides() {
+  showPageGuides = !showPageGuides;
+  try { localStorage.setItem('mpPageGuides', showPageGuides ? '1' : '0'); } catch (e) { /* noop */ }
+  if (typeof redraw === 'function') redraw();
+  _syncPageBadge();
+  if (typeof setStatus === 'function') {
+    setStatus('ページの区切り線: ' + (showPageGuides ? 'ON' : 'OFF'));
+  }
+}
+
+function _syncPageBadge() {
+  const badge = document.getElementById('mp-page-badge');
+  if (!badge) return;
+  badge.classList.toggle('off', !showPageGuides);
+  const input = document.getElementById('mp-page-h');
+  if (input && document.activeElement !== input) input.value = pageViewHeight;
+  const info = document.getElementById('mp-page-count');
+  if (info) {
+    const pages = Math.max(1, Math.ceil((docH || 0) / (Number(pageViewHeight) || 1)));
+    info.textContent = '全' + pages + 'ページ / ' + (docH || 0) + 'px';
+  }
+}
+
+// 「画面の高さ」を決める小さな操作パネル（キャンバスの左下）
+function initPageBadge() {
+  const area = document.getElementById('canvas-area');
+  if (!area || document.getElementById('mp-page-badge')) return;
+
+  const badge = document.createElement('div');
+  badge.id = 'mp-page-badge';
+  badge.innerHTML = '<button id="mp-page-toggle" title="ページの区切り線を表示/非表示">'
+    + '<i class="ti ti-layout-rows"></i></button>'
+    + '<span class="mp-page-lbl">画面の高さ</span>'
+    + '<input id="mp-page-h" type="number" min="40" max="4000" step="10" title="1ページ（画面1つ分）の高さ">'
+    + '<span class="mp-page-lbl">px</span>'
+    + '<span id="mp-page-count" title="今のページの長さ"></span>';
+  area.appendChild(badge);
+
+  badge.querySelector('#mp-page-toggle').onclick = togglePageGuides;
+  const input = badge.querySelector('#mp-page-h');
+  input.addEventListener('input', e => setPageViewHeight(e.target.value));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+  _syncPageBadge();
+}
+
+window.drawPageGuides = drawPageGuides;
+window.togglePageGuides = togglePageGuides;
+window.setPageViewHeight = setPageViewHeight;
 
 function initPageResize() {
   const handle = document.getElementById('cv-resize-handle');
@@ -177,8 +274,13 @@ window.syncCanvasExtent = syncCanvasExtent;
 window.fitPageHeightToContent = fitPageHeightToContent;
 
 // このファイルは app.js より後に読まれるので、自分で初期化する
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPageResize);
-} else {
+function _initPageFeatures() {
   initPageResize();
+  initPageBadge();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initPageFeatures);
+} else {
+  _initPageFeatures();
 }
