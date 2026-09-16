@@ -148,6 +148,18 @@ const MLC_TRIGGER_BLOCKS = {
     parts: [{ num: 'PAGES', def: 1, min: 0.1, max: 50, step: 0.1 }, 'ページごとにスクロールしたとき'],
     toTriggerParams: b => ({ pages: Number(b.getFieldValue('PAGES')) })
   },
+  // スクロールに合わせて、動きの途中が進む（止めると途中で止まる）
+  mlc_when_scroll_view: {
+    trigger: 'scrollview', toggleMode: 'scrub',
+    parts: [{ el: 'TRIGGER_EL' }, 'が画面を通り過ぎるのに合わせて'],
+    tooltip: 'その図形が画面に入ってから出ていくまでの進み具合で、下の動きが進みます。'
+      + '時間ではなくスクロール量で進むので、止めれば途中で止まります。'
+  },
+  mlc_when_scroll_progress: {
+    trigger: 'scrollprogress', toggleMode: 'scrub', noElement: true,
+    parts: ['ページのスクロールに合わせて'],
+    tooltip: 'ページ全体のスクロール量（先頭で0%、最後で100%）で下の動きが進みます。'
+  },
   mlc_when_timer: {
     trigger: 'timer', toggleMode: 'toggle', noElement: true,
     parts: [{ num: 'SEC', def: 2, min: 0.1, max: 600, step: 0.1 }, '秒ごとに'],
@@ -344,6 +356,15 @@ const MLC_ACTION_BLOCKS = {
       { num: 'TO', def: 0.2, min: 0, max: 1, step: 0.05 }],
     toParams: b => ({ to: Number(b.getFieldValue('TO')) })
   },
+  // 線に沿って動かす。ペンや直線で描いた線を軌道として使う。
+  // 線はレイヤーパネルで非表示にしておける（形だけが使われる）。
+  mlc_loop_path: {
+    action: 'path', category: 'loop', duration: 3, easing: 'linear',
+    parts: [{ el: 'TARGET_EL' }, 'を', { line: 'PATH_EL' }, 'に沿って動かす'],
+    tooltip: 'ペンや直線で描いた線を軌道にします。線はレイヤーパネルで非表示にしておけます。'
+      + '「くり返し 1回」にすれば、一度だけ通ります。',
+    toActions: _mlcPathActions
+  },
   mlc_loop_bounce: {
     action: 'bounce', category: 'loop', duration: 1, easing: 'ease-out',
     parts: _mlcMoveParts('を', 0, -20, ' まで 跳ねさせる'),
@@ -382,6 +403,49 @@ function mlcShapeDropdownOptions(includeHidden) {
   return opts.length ? opts : [['(図形がありません)', '']];
 }
 
+// ── 軌道（線に沿って動かす）────────────────────────────────
+// 軌道に使えるのは線として描いたもの。目印にすることが多いので非表示も出す。
+const MLC_PATH_SHAPE_TYPES = ['pen', 'line', 'brush'];
+const MLC_PATH_MAX_POINTS = 36; // CSSに書くコマ数の上限（多すぎても見た目は変わらない）
+
+function mlcLineDropdownOptions() {
+  const list = (typeof shapes !== 'undefined' ? shapes : []) || [];
+  const opts = list
+    .filter(s => MLC_PATH_SHAPE_TYPES.includes(s.type))
+    .map(s => [(s.name || s.type) + (s.hidden ? '（非表示）' : '') + ' (' + String(s.id || '').slice(-4) + ')', String(s.id)]);
+  return opts.length ? opts : [['(線がありません)', '']];
+}
+
+// 線の形から、通る点を取り出す（多すぎるときは間引く）
+function _mlcLinePoints(shape) {
+  if (!shape) return [];
+  if (shape.type === 'line') {
+    return [{ x: shape.x1, y: shape.y1 }, { x: shape.x2, y: shape.y2 }];
+  }
+  const pts = Array.isArray(shape.pts) ? shape.pts : [];
+  if (pts.length <= MLC_PATH_MAX_POINTS) return pts.slice();
+  const out = [];
+  for (let i = 0; i < MLC_PATH_MAX_POINTS; i++) {
+    out.push(pts[Math.round((i / (MLC_PATH_MAX_POINTS - 1)) * (pts.length - 1))]);
+  }
+  return out;
+}
+
+// 「AをBの線に沿って動かす」。線の上の点を、Aの中心からのずれに直して持つ。
+// ずれで持つので、あとから図形を動かしても軌道の形は崩れない。
+function _mlcPathActions(block) {
+  const from = _mlcShapeGeometry(block.getFieldValue('TARGET_EL'));
+  const lineId = block.getFieldValue('PATH_EL');
+  const line = (typeof shapes !== 'undefined' ? shapes : []).find(s => s.id === lineId);
+  const pts = _mlcLinePoints(line);
+  if (!from || pts.length < 2) return [{ type: 'path', params: { points: [] } }];
+
+  const cx = from.x + from.w / 2;
+  const cy = from.y + from.h / 2;
+  const points = pts.map(p => [Math.round(p.x - cx), Math.round(p.y - cy)]);
+  return [{ type: 'path', params: { points } }];
+}
+
 // 非表示の図形も含めた候補（Blocklyへは関数のまま渡すので、別名で用意する）
 function mlcShapeDropdownOptionsAll() {
   return mlcShapeDropdownOptions(true);
@@ -391,6 +455,7 @@ function mlcShapeDropdownOptionsAll() {
 function _mlcAppendParts(block, input, parts) {
   parts.forEach(part => {
     if (typeof part === 'string') { input.appendField(part); return; }
+    if (part.line) { input.appendField(new Blockly.FieldDropdown(mlcLineDropdownOptions), part.line); return; }
     if (part.el) {
       const options = part.includeHidden ? mlcShapeDropdownOptionsAll : mlcShapeDropdownOptions;
       input.appendField(new Blockly.FieldDropdown(options), part.el);
@@ -430,6 +495,14 @@ function defineMlcBlocks() {
           .appendField('秒')
           .appendField(new Blockly.FieldDropdown(MLC_EASING_OPTIONS), 'EASING');
         if (spec.easing) this.setFieldValue(spec.easing, 'EASING');
+        // ずっと動く系だけ、くり返し方を選べるようにする
+        if (spec.category === 'loop') {
+          this.appendDummyInput()
+            .appendField('くり返し')
+            .appendField(new Blockly.FieldNumber(0, 0, 9999, 1), 'REPEAT')
+            .appendField('回（0でずっと）')
+            .appendField(new Blockly.FieldDropdown([['片道', 'normal'], ['往復', 'alternate']]), 'DIRECTION');
+        }
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(MLC_CATEGORY_COLOUR[spec.category] ?? MLC_CATEGORY_COLOUR.action);
@@ -552,7 +625,9 @@ function blocklyWorkspaceToInteractions(ws) {
             actions: aSpec.toActions ? aSpec.toActions(block) : null,
             duration: Number(block.getFieldValue('DURATION')),
             delay: Number(block.getFieldValue('DELAY')),
-            easing: block.getFieldValue('EASING')
+            easing: block.getFieldValue('EASING'),
+            repeat: Number(block.getFieldValue('REPEAT')) || 0,
+            direction: block.getFieldValue('DIRECTION') || 'normal'
           }));
         }
       }
@@ -583,7 +658,9 @@ function blocklyWorkspaceToInteractions(ws) {
       actions: aSpec.toActions ? aSpec.toActions(block) : null,
       duration: Number(block.getFieldValue('DURATION')),
       delay: Number(block.getFieldValue('DELAY')),
-      easing: block.getFieldValue('EASING')
+      easing: block.getFieldValue('EASING'),
+      repeat: Number(block.getFieldValue('REPEAT')) || 0,
+      direction: block.getFieldValue('DIRECTION') || 'normal'
     });
     rule.jsDriven = true;
     rules.push(rule);

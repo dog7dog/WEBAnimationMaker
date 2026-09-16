@@ -12,7 +12,9 @@
 // ══════════════════════════════════════════════════════════════
 
 const INTERACTION_TRIGGER_TYPES = [
-  'click', 'dblclick', 'hover', 'press', 'inview', 'load', 'key', 'scroll', 'scrollpage', 'timer'
+  'click', 'dblclick', 'hover', 'press', 'inview', 'load', 'key', 'scroll', 'scrollpage', 'timer',
+  // スクロール連動（時間ではなくスクロール位置で進む）
+  'scrollview', 'scrollprogress'
 ];
 
 // アクションの種類。
@@ -24,14 +26,15 @@ const INTERACTION_ACTION_TYPES = [
   'scale', 'fade', 'move', 'slide', 'rotate', 'show', 'hide',
   'skew', 'flip', 'stretch',
   'blur', 'brightness', 'grayscale', 'saturate', 'hue', 'glow',
-  'pulse', 'spin', 'float', 'shake', 'swing', 'blink', 'bounce'
+  'pulse', 'spin', 'float', 'shake', 'swing', 'blink', 'bounce', 'path'
 ];
 
 // ずっと繰り返すアクション。@keyframes + infinite で表現するので、
 // 値を1つ決める通常のアクションとは生成のしかたが違う。
-const INTERACTION_LOOP_ACTION_TYPES = ['pulse', 'spin', 'float', 'shake', 'swing', 'blink', 'bounce'];
+const INTERACTION_LOOP_ACTION_TYPES = ['pulse', 'spin', 'float', 'shake', 'swing', 'blink', 'bounce', 'path'];
 
-const INTERACTION_TOGGLE_MODES = ['once', 'hold', 'toggle'];
+//   scrub: スクロール位置に合わせて、動きの途中を行ったり来たりする
+const INTERACTION_TOGGLE_MODES = ['once', 'hold', 'toggle', 'scrub'];
 
 // トリガー種別ごとの既定のtoggleMode（UIの初期値に使う）
 //   once  : 初回発火で再生し完了状態を維持（ページ表示時の出現演出）
@@ -40,7 +43,8 @@ const INTERACTION_TOGGLE_MODES = ['once', 'hold', 'toggle'];
 const INTERACTION_DEFAULT_TOGGLE = {
   click: 'toggle', dblclick: 'toggle', hover: 'hold', press: 'hold',
   inview: 'toggle', load: 'once', key: 'toggle',
-  scroll: 'toggle', scrollpage: 'toggle', timer: 'toggle'
+  scroll: 'toggle', scrollpage: 'toggle', timer: 'toggle',
+  scrollview: 'scrub', scrollprogress: 'scrub'
 };
 
 // 各アクションが書き込む先。競合検出に使う。
@@ -77,7 +81,8 @@ const INTERACTION_ACTION_PROPERTY = {
 const INTERACTION_LOOP_VARS = {
   pulse: ['--mlc-scale'], spin: ['--mlc-rot'], swing: ['--mlc-rot'], blink: ['opacity'],
   // 横・縦の両方を動かせるので、どちらの変数も申告する
-  float: ['--mlc-tx', '--mlc-ty'], shake: ['--mlc-tx', '--mlc-ty'], bounce: ['--mlc-tx', '--mlc-ty']
+  float: ['--mlc-tx', '--mlc-ty'], shake: ['--mlc-tx', '--mlc-ty'], bounce: ['--mlc-tx', '--mlc-ty'],
+  path: ['--mlc-tx', '--mlc-ty']
 };
 INTERACTION_LOOP_ACTION_TYPES.forEach(type => {
   INTERACTION_ACTION_PROPERTY[type] = ['animation'].concat(INTERACTION_LOOP_VARS[type]);
@@ -129,6 +134,8 @@ function defaultActionParams(actionType) {
     case 'swing': return { deg: 8 };
     case 'blink': return { to: 0.2 };
     case 'bounce': return { dx: 0, dy: -20 };
+    // 軌道。線の上の点を、動かす図形の中心からのずれ [横, 縦] で持つ
+    case 'path': return { points: [] };
     default: return {};
   }
 }
@@ -161,8 +168,9 @@ function createInteractionRule(opts = {}) {
       duration: Number.isFinite(Number(opts.duration)) ? Number(opts.duration) : 0.4,
       delay: Number.isFinite(Number(opts.delay)) ? Number(opts.delay) : 0,
       easing: opts.easing || 'ease-out',
-      repeat: 0,
-      direction: 'normal'
+      // くり返す回数（0 = ずっと）と、向き（normal = 片道 / alternate = 往復）
+      repeat: Number.isFinite(Number(opts.repeat)) ? Math.max(0, Math.round(Number(opts.repeat))) : 0,
+      direction: opts.direction === 'alternate' ? 'alternate' : 'normal'
     }]
   };
 }

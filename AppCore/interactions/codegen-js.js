@@ -25,13 +25,55 @@ function _interactionSelector2(targetId) {
     : '.el-' + _interactionCssIdent2(raw);
 }
 
+// スクロール連動を、animation-timeline に対応していないブラウザで動かすための補助。
+// アニメーションを止めておき、再生位置（animation-delay）をスクロール量で動かす。
+const INTERACTION_SCRUB_RUNTIME = [
+  '// スクロール連動（animation-timeline に未対応のブラウザ用）',
+  'function mlcScrub(sel, name, mode) {',
+  '  if (CSS.supports("animation-timeline", "view()")) return;',
+  '  var el = document.querySelector(sel);',
+  '  if (!el) return;',
+  '  el.style.animationPlayState = "paused";',
+  '  function update() {',
+  '    var p;',
+  '    if (mode === "page") {',
+  '      var max = document.documentElement.scrollHeight - window.innerHeight;',
+  '      p = max > 0 ? window.scrollY / max : 0;',
+  '    } else {',
+  '      var r = el.getBoundingClientRect();',
+  '      var span = window.innerHeight + r.height;',
+  '      p = span > 0 ? (window.innerHeight - r.top) / span : 0;',
+  '    }',
+  '    p = Math.max(0, Math.min(1, p));',
+  '    el.style.animationDelay = (-p) + "s";',
+  '  }',
+  '  window.addEventListener("scroll", update, { passive: true });',
+  '  window.addEventListener("resize", update);',
+  '  update();',
+  '}'
+].join('\n');
+
 function generateInteractionJS(rules) {
   const lines = [];
+  let needsScrub = false;
 
   (rules || []).forEach(rule => {
     // 制御構造の中から呼ばれるアクションは、実行の順番や条件をJS側
     // (blockly-codegen.js)が決めるので、ここではリスナーを作らない
     if (rule.jsDriven) return;
+
+    // スクロール連動: 基本はCSSだけで動く。未対応のブラウザでだけJSが働く。
+    if (rule.toggleMode === 'scrub') {
+      needsScrub = true;
+      const kf = typeof interactionKeyframesName === 'function'
+        ? interactionKeyframesName(rule)
+        : 'mlc-kf-' + _interactionCssIdent2(rule.id);
+      const mode = rule.trigger?.type === 'scrollprogress' ? 'page' : 'view';
+      lines.push('mlcScrub(' + JSON.stringify(_interactionSelector2(rule.targetId || rule.triggerElementId))
+        + ', ' + JSON.stringify(kf) + ', ' + JSON.stringify(mode) + ');');
+      return;
+    }
+
     if (rule.toggleMode !== 'toggle') return; // hover/load はJS不要
 
     const activeCls = typeof interactionActiveClass === 'function'
@@ -143,5 +185,6 @@ function generateInteractionJS(rules) {
     }
   });
 
-  return lines.join('\n\n');
+  if (!lines.length) return '';
+  return (needsScrub ? INTERACTION_SCRUB_RUNTIME + '\n\n' : '') + lines.join('\n\n');
 }

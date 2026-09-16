@@ -135,14 +135,18 @@ function syncDomMirror() {
   _mirrorStyleEl().textContent = buildMirrorStageCss();
   stage.innerHTML = buildMirrorStageHtml();
 
-  // 表示領域に対して大きい場合は縮小して全体を見せる
+  // 横がはみ出す場合だけ縮小する。縦は長いページを作れるので基準にしない
+  // （高さにも合わせると、縦長のページが極端に小さく表示されてしまう）。
+  // はみ出す分はスクロールして見る。
   const wrap = stage.parentElement;
   if (wrap) {
     const availW = wrap.clientWidth - 32;
-    const availH = wrap.clientHeight - 32;
-    const k = Math.min(1, availW / (docW || 1280), availH / (docH || 720));
+    const k = Math.min(1, availW / (docW || 1280));
     stage.style.transform = k < 1 ? 'scale(' + k.toFixed(4) + ')' : '';
-    stage.style.transformOrigin = 'center';
+    stage.style.transformOrigin = 'top center';
+    // 縮小しても「場所取り」は元の大きさのままなので、余る分を詰めて
+    // スクロールできる範囲を見た目に合わせる
+    stage.style.marginBottom = k < 1 ? Math.round(-(1 - k) * (docH || 720)) + 'px' : '';
   }
 
   // ノードを作り直したのでリスナーも失われている。プレビュー中なら貼り直す。

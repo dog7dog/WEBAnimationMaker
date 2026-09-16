@@ -228,6 +228,15 @@ const INTERACTION_LOOP_FRAMES = {
     const to = Number(p?.to ?? 0.2);
     return [[0, { opacity: '1' }], [50, { opacity: String(to) }], [100, { opacity: '1' }]];
   },
+  // 線に沿って動かす。線の上の点をそのままコマにする。
+  path: p => {
+    const pts = Array.isArray(p?.points) ? p.points : [];
+    if (pts.length < 2) return [[0, _interactionShift(0, 0)], [100, _interactionShift(0, 0)]];
+    return pts.map((pt, i) => [
+      Math.round((i / (pts.length - 1)) * 10000) / 100,
+      _interactionShift(Number(pt[0]) || 0, Number(pt[1]) || 0)
+    ]);
+  },
   // 指定した所まで跳んで、小さくもう一度跳ねる
   bounce: p => {
     const { dx, dy } = _interactionOffset(p, 0, -20);
@@ -238,6 +247,33 @@ const INTERACTION_LOOP_FRAMES = {
     ];
   }
 };
+
+// 「何もしていない状態」の値。スクロール連動では、ここから目的の状態へ
+// 少しずつ動かすので、動かすプロパティごとの初期値が要る。
+function _interactionNeutralProps(props) {
+  const out = {};
+  Object.keys(props || {}).forEach(key => {
+    const v = INTERACTION_TRANSFORM_VARS.concat(INTERACTION_FILTER_VARS).find(x => x[0] === key);
+    if (v) { out[key] = v[2]; return; }
+    if (key === 'opacity') { out[key] = '1'; return; }
+    if (key === 'pointer-events') return; // 途中の状態を持たない
+    out[key] = props[key];
+  });
+  return out;
+}
+
+// スクロール連動の割り当て。
+//   scrollview     … その要素が画面に入ってから出るまで
+//   scrollprogress … ページ全体のスクロール量
+function _interactionScrollTimeline(rule) {
+  if (rule.trigger?.type === 'scrollprogress') {
+    return { timeline: 'scroll()', range: '' };
+  }
+  const p = rule.trigger?.params || {};
+  const start = p.start || 'entry';
+  const end = p.end || 'exit';
+  return { timeline: 'view()', range: 'animation-range: ' + start + ' 0% ' + end + ' 100%;' };
+}
 
 // このステップが「ずっと動く」アクションなら、そのアクションを返す
 function _interactionLoopAction(step) {
@@ -330,7 +366,18 @@ function generateInteractionCSS(rules) {
         + frames.map(([pct, fprops]) => '  ' + pct + '% { ' + _interactionPropsToText(fprops) + ' }').join('\n')
         + '\n}');
 
-      const animation = kfName + ' ' + timing + ' infinite';
+      // スクロール連動なら、くり返しではなくスクロール位置で進める。
+      // （軌道を「スクロールに合わせてなぞる」のように組み合わせられる）
+      if (rule.toggleMode === 'scrub') {
+        entry.animations.push(kfName + ' 1s linear both');
+        entry.scrollTimeline = _interactionScrollTimeline(rule);
+        return;
+      }
+
+      // 回数(0はずっと)と往復。回数を決めた場合は、終わると元の状態へ戻る。
+      const count = Number(step.repeat) > 0 ? Math.round(Number(step.repeat)) : 'infinite';
+      const direction = step.direction === 'alternate' ? ' alternate' : '';
+      const animation = kfName + ' ' + timing + ' ' + count + direction;
       const holdPseudo = INTERACTION_HOLD_PSEUDO[rule.trigger?.type];
       if (rule.toggleMode === 'hold' && holdPseudo) {
         stateBlocks.push(sel + holdPseudo + ' { animation: ' + animation + '; }');
@@ -347,6 +394,26 @@ function generateInteractionCSS(rules) {
 
     const entry = _interactionTargetEntry(targets, sel);
     _interactionNoteVarUse(entry, props);
+
+    // ── スクロールに合わせて進む ──
+    //   時間で再生する代わりに、スクロール位置へ再生位置を結びつける。
+    //   @keyframes は「何もしていない状態 → 指定した状態」。
+    //   animation-timeline に対応していないブラウザ向けには、
+    //   codegen-js.js が同じ動きをJSで作る（そちらは停止＋再生位置の指定）。
+    if (rule.toggleMode === 'scrub') {
+      const kfName = interactionKeyframesName(rule);
+      const fromProps = _interactionHasFrom(step)
+        ? _interactionActionsToProps(step.actions, true)
+        : _interactionNeutralProps(props);
+      _interactionNoteVarUse(entry, fromProps);
+      keyframeBlocks.push('@keyframes ' + kfName + ' { from { ' + _interactionPropsToText(fromProps)
+        + ' } to { ' + _interactionPropsToText(props) + ' } }');
+
+      const tl = _interactionScrollTimeline(rule);
+      entry.animations.push(kfName + ' 1s linear both');
+      entry.scrollTimeline = tl;
+      return;
+    }
 
     if (rule.toggleMode === 'once') {
       // load等: 初回発火で再生し完了状態を維持する。
@@ -419,6 +486,11 @@ function generateInteractionCSS(rules) {
     }
     if (entry.transitions.length) decls.push('transition: ' + entry.transitions.join(', ') + ';');
     if (entry.animations.length) decls.push('animation: ' + entry.animations.join(', ') + ';');
+    if (entry.scrollTimeline) {
+      // 再生をスクロール位置に結びつける（対応していないブラウザでは無視される）
+      decls.push('animation-timeline: ' + entry.scrollTimeline.timeline + ';');
+      if (entry.scrollTimeline.range) decls.push(entry.scrollTimeline.range);
+    }
     // SVGの<g>要素はデフォルトでtransform-originがSVGビューポート原点基準になり、
     // 自分自身の見た目の中心を基準にscale/rotateしない（HTML要素とは異なる挙動）。
     // fill-box指定で自分の描画領域を基準にする。HTML要素側では

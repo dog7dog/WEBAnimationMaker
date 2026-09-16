@@ -18,7 +18,10 @@ function buildSiteParts() {
     + '  width: ' + (docW || 1280) + 'px;\n'
     + '  height: ' + (docH || 720) + 'px;\n'
     + '  background: ' + (canvasBg || '#111111') + ';\n'
-    + '  overflow: hidden;\n'
+    // clip にしておくと、はみ出しは隠しつつ「スクロールする枠」にはならない。
+    // hidden だとステージ自身がスクロール枠と見なされ、スクロール連動の
+    // 結びつけ先がここで止まってしまう（ページのスクロールに繋がらない）。
+    + '  overflow: clip;\n'
     + '}';
 
   return { stageCss, shapesCss, interactionCss, js, bodyHtml };

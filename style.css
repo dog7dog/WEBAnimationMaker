@@ -2745,7 +2745,10 @@ body {
   margin: auto;
   box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
   border-radius: 4px;
-  overflow: hidden;
+  /* clip にしておくと、はみ出しは隠しつつ「スクロールする枠」にはならない。
+     hidden だとステージ自身がスクロール枠と見なされ、スクロール連動の
+     結びつけ先がここで止まってしまう。 */
+  overflow: clip;
 }
 
 /* ══ コーディング（Blockly）パネル ═════════════════════════════ */
