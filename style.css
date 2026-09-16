@@ -2580,6 +2580,9 @@ body {
 #mp-page-badge.off button { color: var(--fg3); }
 #mp-page-badge button:hover { background: var(--bg3); }
 #mp-page-badge .mp-page-lbl { font-size: 11px; color: var(--fg2); }
+#mp-page-badge .mp-page-num { font: 11px monospace; color: var(--fg0); }
+#mp-page-badge #mp-page-match { color: var(--fg1); }
+#mp-page-badge #mp-page-match:hover { color: var(--accent); }
 #mp-page-badge input {
   width: 52px; height: 22px; text-align: right;
   background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm);

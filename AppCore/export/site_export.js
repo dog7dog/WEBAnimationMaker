@@ -64,16 +64,58 @@ function exportSiteHtml() {
   if (typeof toast === 'function') toast('ti-file-export', 'HTMLを書き出しました');
 }
 
+// 直前に開いたプレビュー窓。ここの表示サイズが「実際の1ページ」になる。
+let _sitePreviewWin = null;
+
+// 窓の「外枠」を指定して開いても、タイトルバーのぶん中身は小さくなる。
+// 中身がキャンバスの幅ちょうどになるよう、開いたあとで差を詰める。
+// （こうしておかないと「プレビューに合わせる」を押すたびに幅がずれていく）
+function _fitPreviewWindowToPage(win) {
+  let tries = 0;
+  const timer = setInterval(() => {
+    let inner = 0;
+    try { inner = win.closed ? -1 : win.innerWidth; } catch (e) { inner = -1; }
+    if (inner < 0 || ++tries > 20) { clearInterval(timer); return; }
+    if (!inner) return;
+    clearInterval(timer);
+    const diff = (docW || 1280) - inner;
+    if (Math.abs(diff) < 2) return;
+    try { win.resizeBy(diff, 0); } catch (e) { /* 動かせない環境もある */ }
+  }, 100);
+}
+
+// プレビュー窓の表示範囲（px）。開いていない・読めない場合は null。
+//   窓は開いたあとで大きさを変えられるので、値は毎回その場で測る。
+function getSitePreviewViewport() {
+  try {
+    const w = _sitePreviewWin;
+    if (w && !w.closed && w.innerWidth > 0 && w.innerHeight > 0) {
+      return { w: Math.round(w.innerWidth), h: Math.round(w.innerHeight) };
+    }
+  } catch (e) {
+    // 別ドメイン扱いなどで読めないことがある（file:// で開いた場合など）
+  }
+  return null;
+}
+
 // 別タブで開いて動作を確認する（書き出すものと同じHTML）
-function openSitePreview() {
+//   opts.fullSize: 画面いっぱいの大きさで開く。
+//     「1ページをプレビューに合わせる」で基準にする窓は、キャンバスの
+//     大きさから決めると堂々巡りになる（窓に合わせる→次はその窓の大きさが
+//     基準になる…）ので、実際の閲覧に近い大きさで開く。
+function openSitePreview(opts = {}) {
   if (typeof ensureShapeIds === 'function') ensureShapeIds();
   const blob = new Blob([buildSiteHtml()], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, 'mlc-site-preview',
-    'width=' + Math.min((docW || 1280) + 80, 1400) + ',height=' + Math.min((docH || 720) + 120, 900));
+  const size = opts.fullSize
+    ? { w: screen.availWidth, h: screen.availHeight }
+    : { w: Math.min((docW || 1280) + 80, 1400), h: Math.min((docH || 720) + 120, 900) };
+  const win = window.open(url, 'mlc-site-preview', 'width=' + size.w + ',height=' + size.h);
   if (!win) {
     if (typeof toast === 'function') toast('ti-alert-triangle', 'ポップアップをブロックされました');
   } else {
+    _sitePreviewWin = win;
+    if (!opts.fullSize) _fitPreviewWindowToPage(win);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
   if (typeof closeFileMenu === 'function') closeFileMenu();
@@ -81,3 +123,4 @@ function openSitePreview() {
 
 window.exportSiteHtml = exportSiteHtml;
 window.openSitePreview = openSitePreview;
+window.getSitePreviewViewport = getSitePreviewViewport;

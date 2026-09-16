@@ -157,6 +157,58 @@ function drawPageGuides() {
   ctx.restore();
 }
 
+// ── 「実際のプレビューの1ページ」に合わせる ─────────────────
+//   別タブで開いたプレビュー窓の表示範囲を、そのまま1ページとして使う。
+//   横はキャンバスの幅(docW)に、縦は区切り線の間隔(pageViewHeight)になる。
+//   窓は開いたあとで大きさを変えられるので、押した時点の大きさを測る。
+
+function applyPreviewViewport(v) {
+  if (!v || !(v.w > 0) || !(v.h > 0)) return false;
+
+  if (typeof saveState === 'function') saveState();
+  docW = Math.round(v.w);
+  pageViewHeight = Math.round(v.h);
+  // ページが1画面より短いと区切り線が1本も出ないので、最低1ページ分は確保する
+  if (docH < pageViewHeight) docH = pageViewHeight;
+
+  try {
+    localStorage.setItem('mpDocW', String(docW));
+    localStorage.setItem('mpDocH', String(docH));
+    localStorage.setItem('mpPageViewH', String(pageViewHeight));
+  } catch (e) { /* 保存できなくても続行 */ }
+
+  if (typeof resizeCanvas === 'function') resizeCanvas();
+  if (typeof syncAll === 'function') syncAll();
+  _syncPageBadge();
+  if (typeof toast === 'function') {
+    toast('ti-device-desktop', '1ページ = ' + docW + ' × ' + pageViewHeight + 'px に合わせました');
+  }
+  return true;
+}
+
+function matchPageToPreview() {
+  const live = typeof getSitePreviewViewport === 'function' ? getSitePreviewViewport() : null;
+  if (live) { applyPreviewViewport(live); return; }
+
+  // まだ開いていなければ開いて、表示できたところで測る
+  if (typeof openSitePreview !== 'function') return;
+  if (typeof setStatus === 'function') setStatus('プレビューを開いて大きさを測っています…');
+  // 基準にする窓なので、実際の閲覧に近い大きさで開く
+  openSitePreview({ fullSize: true });
+
+  let tries = 0;
+  const timer = setInterval(() => {
+    const v = typeof getSitePreviewViewport === 'function' ? getSitePreviewViewport() : null;
+    if (v) { clearInterval(timer); applyPreviewViewport(v); return; }
+    if (++tries > 40) {
+      clearInterval(timer);
+      if (typeof toast === 'function') {
+        toast('ti-alert-triangle', 'プレビューの大きさを読めませんでした（ポップアップの許可を確認してください）');
+      }
+    }
+  }, 150);
+}
+
 function setPageViewHeight(h) {
   const next = Math.max(40, Math.min(PAGE_MAX_HEIGHT, Math.round(Number(h) || 0)));
   pageViewHeight = next;
@@ -181,6 +233,8 @@ function _syncPageBadge() {
   badge.classList.toggle('off', !showPageGuides);
   const input = document.getElementById('mp-page-h');
   if (input && document.activeElement !== input) input.value = pageViewHeight;
+  const wEl = document.getElementById('mp-page-w');
+  if (wEl) wEl.textContent = docW || 0;
   const info = document.getElementById('mp-page-count');
   if (info) {
     const pages = Math.max(1, Math.ceil((docH || 0) / (Number(pageViewHeight) || 1)));
@@ -197,19 +251,26 @@ function initPageBadge() {
   badge.id = 'mp-page-badge';
   badge.innerHTML = '<button id="mp-page-toggle" title="ページの区切り線を表示/非表示">'
     + '<i class="ti ti-layout-rows"></i></button>'
-    + '<span class="mp-page-lbl">画面の高さ</span>'
+    + '<span class="mp-page-lbl">1ページ</span>'
+    + '<span id="mp-page-w" class="mp-page-num" title="キャンバスの幅"></span>'
+    + '<span class="mp-page-lbl">×</span>'
     + '<input id="mp-page-h" type="number" min="40" max="4000" step="10" title="1ページ（画面1つ分）の高さ">'
     + '<span class="mp-page-lbl">px</span>'
+    + '<button id="mp-page-match" title="別タブのプレビュー窓の大きさを、そのまま1ページにする">'
+    + '<i class="ti ti-device-desktop"></i></button>'
     + '<span id="mp-page-count" title="今のページの長さ"></span>';
   area.appendChild(badge);
 
   badge.querySelector('#mp-page-toggle').onclick = togglePageGuides;
+  badge.querySelector('#mp-page-match').onclick = matchPageToPreview;
   const input = badge.querySelector('#mp-page-h');
   input.addEventListener('input', e => setPageViewHeight(e.target.value));
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
   _syncPageBadge();
 }
 
+window.matchPageToPreview = matchPageToPreview;
+window.applyPreviewViewport = applyPreviewViewport;
 window.drawPageGuides = drawPageGuides;
 window.togglePageGuides = togglePageGuides;
 window.setPageViewHeight = setPageViewHeight;

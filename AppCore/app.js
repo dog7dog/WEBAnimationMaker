@@ -1,5 +1,5 @@
 // ── 初期化 ───────────────────────────────────────────────────
-setColor('#3B8AE6');
+setColor('#ffffff');
 setStatus('準備完了');
 initJSEditor();
 initViewTabs();

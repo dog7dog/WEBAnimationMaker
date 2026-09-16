@@ -10,6 +10,7 @@ function snapshot() {
     canvasBg,
     docW,
     docH,
+    pageViewHeight,
     layers: layers.map(l => ({ ...l })),
     activeLayerId,
   });
@@ -26,6 +27,7 @@ function restore(data) {
 
   if (state.FPS != null)      FPS      = state.FPS;
   if (state.canvasBg != null) canvasBg = state.canvasBg;
+  if (Number(state.pageViewHeight) > 0) pageViewHeight = state.pageViewHeight;
   // ページの高さ・幅も戻す（下端バーで伸ばした分を⌘Zで取り消せるように）
   if (Number(state.docW) > 0 && Number(state.docH) > 0
       && (state.docW !== docW || state.docH !== docH)) {
