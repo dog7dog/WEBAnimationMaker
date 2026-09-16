@@ -50,13 +50,18 @@ const INTERACTION_TRANSFORM_VARS = [
   ['--mlc-sky', '<angle>', '0deg'],
   ['--mlc-scale', '<number>', '1'],
   ['--mlc-flip-x', '<number>', '1'],
-  ['--mlc-flip-y', '<number>', '1']
+  ['--mlc-flip-y', '<number>', '1'],
+  // 縦横を別々に伸ばす（「変形」で使う）。拡大(--mlc-scale)とは別に持って
+  // おくと、「変形」と「拡大」を重ねてもお互いを消さずに済む。
+  ['--mlc-sx', '<number>', '1'],
+  ['--mlc-sy', '<number>', '1']
 ];
 
 const INTERACTION_TRANSFORM_VALUE =
   'translate(var(--mlc-tx), var(--mlc-ty)) rotate(var(--mlc-rot))'
   + ' skew(var(--mlc-skx), var(--mlc-sky))'
-  + ' scale(var(--mlc-scale)) scale(var(--mlc-flip-x), var(--mlc-flip-y))';
+  + ' scale(var(--mlc-scale)) scale(var(--mlc-flip-x), var(--mlc-flip-y))'
+  + ' scale(var(--mlc-sx), var(--mlc-sy))';
 
 // filterを組み立てるCSS変数。transformと同じ考え方で、
 // ぼかし・明るさ・白黒…を種類ごとに別の変数へ書いて1つのfilterに合成する。
@@ -139,6 +144,10 @@ function _interactionActionsToProps(actions, useFrom) {
       case 'flip':
         props['--mlc-flip-x'] = String(Number(a.params?.x ?? 1));
         props['--mlc-flip-y'] = String(Number(a.params?.y ?? 1));
+        break;
+      case 'stretch':
+        props['--mlc-sx'] = String(Number(a.params?.sx ?? 1));
+        props['--mlc-sy'] = String(Number(a.params?.sy ?? 1));
         break;
       case 'blur':
         props['--mlc-blur'] = Number(a.params?.to ?? 0) + 'px';

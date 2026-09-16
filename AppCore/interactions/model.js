@@ -22,7 +22,7 @@ const INTERACTION_TRIGGER_TYPES = [
 //   ずっと動く: pulse / spin / float / shake / swing / blink / bounce
 const INTERACTION_ACTION_TYPES = [
   'scale', 'fade', 'move', 'slide', 'rotate', 'show', 'hide',
-  'skew', 'flip',
+  'skew', 'flip', 'stretch',
   'blur', 'brightness', 'grayscale', 'saturate', 'hue', 'glow',
   'pulse', 'spin', 'float', 'shake', 'swing', 'blink', 'bounce'
 ];
@@ -57,6 +57,7 @@ const INTERACTION_ACTION_PROPERTY = {
   move: ['--mlc-tx', '--mlc-ty'],
   slide: ['--mlc-tx', '--mlc-ty'],
   skew: ['--mlc-skx', '--mlc-sky'],
+  stretch: ['--mlc-sx', '--mlc-sy'],
   flip: ['--mlc-flip-x', '--mlc-flip-y'],
   // filter を組み立てる変数
   blur: ['--mlc-blur'],
@@ -88,6 +89,7 @@ const INTERACTION_PROPERTY_LABEL = {
   '--mlc-tx': '横の位置', '--mlc-ty': '縦の位置',
   '--mlc-skx': '横の傾き', '--mlc-sky': '縦の傾き',
   '--mlc-flip-x': '左右の反転', '--mlc-flip-y': '上下の反転',
+  '--mlc-sx': '横の伸び', '--mlc-sy': '縦の伸び',
   '--mlc-blur': 'ぼかし', '--mlc-bright': '明るさ', '--mlc-gray': '白黒',
   '--mlc-sat': '鮮やかさ', '--mlc-hue': '色合い', '--mlc-glow': '影',
   opacity: '濃さ', animation: 'ずっと動く演出'
@@ -109,6 +111,8 @@ function defaultActionParams(actionType) {
     case 'slide': return { dx: 100, dy: 0 };
     case 'rotate': return { deg: 45 };
     case 'skew': return { dx: 10, dy: 0 };
+    // 縦横を別々の倍率で伸ばす（「変形」が使う）
+    case 'stretch': return { sx: 1, sy: 1 };
     case 'flip': return { x: -1, y: 1 };
     case 'blur': return { to: 4 };
     case 'brightness': return { to: 1.4 };

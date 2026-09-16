@@ -162,6 +162,12 @@ function applyInteractions() {
 }
 
 function setInteractionPreviewActive(on) {
+  // 「変形」は図形の今の位置から差分を出しているので、プレビューに入る前に
+  // ブロックからルールを作り直して、目印を動かしたあとでもズレないようにする。
+  // （まだプレビュー中ではないので、この呼び出しから applyInteractions は走らない）
+  if (on && !_interactionPreviewActive && typeof regenerateInteractionsFromBlockly === 'function') {
+    regenerateInteractionsFromBlockly();
+  }
   _interactionPreviewActive = !!on;
 
   if (!_interactionPreviewActive) {

@@ -63,6 +63,46 @@ function _mlcMoveValues(b) {
   return { dx: Number(b.getFieldValue('DX')), dy: Number(b.getFieldValue('DY')) };
 }
 
+// ── 変形（パワポのモーフのように、別の図形の形へ寄せる）──────────
+// 対象idから、位置・大きさ・角度を取り出す。グループにも対応する。
+function _mlcShapeGeometry(targetId) {
+  const raw = String(targetId || '');
+  if (!raw || typeof shapes === 'undefined') return null;
+
+  if (raw.startsWith('grp:')) {
+    const gid = raw.slice(4);
+    const b = typeof getGroupBounds === 'function' ? getGroupBounds(gid) : null;
+    return b ? { x: b.x, y: b.y, w: b.w, h: b.h, rot: 0 } : null;
+  }
+  const s = shapes.find(sh => sh.id === raw);
+  if (!s || typeof getBounds !== 'function') return null;
+  const b = getBounds(s);
+  return { x: b.x, y: b.y, w: b.w, h: b.h, rot: Number(s.rot) || 0 };
+}
+
+// 「AをBの位置・大きさに」の差分を、移動・回転・伸ばしの3つに分けて返す。
+// 行き先が見つからないときは、何も動かない値を返す（ブロックを置いた直後や、
+// 目印の図形を消したあとでも、生成が壊れないように）。
+function _mlcMorphActions(block) {
+  const from = _mlcShapeGeometry(block.getFieldValue('TARGET_EL'));
+  const to = _mlcShapeGeometry(block.getFieldValue('TO_EL'));
+  const round = (v, d) => Math.round(v * d) / d;
+
+  let dx = 0, dy = 0, sx = 1, sy = 1, deg = 0;
+  if (from && to && from.w > 0 && from.h > 0) {
+    dx = round((to.x + to.w / 2) - (from.x + from.w / 2), 1);
+    dy = round((to.y + to.h / 2) - (from.y + from.h / 2), 1);
+    sx = round(to.w / from.w, 1000);
+    sy = round(to.h / from.h, 1000);
+    deg = round(to.rot - from.rot, 10);
+  }
+  return [
+    { type: 'move', params: { dx, dy } },
+    { type: 'stretch', params: { sx, sy } },
+    { type: 'rotate', params: { deg } }
+  ];
+}
+
 // ── トリガー ─────────────────────────────────────────────────
 //   noElement: トリガー元の図形を持たないもの（ページ表示・キー入力）。
 //   この場合は繋がれたアクションの対象図形をトリガー元として扱う。
@@ -147,6 +187,16 @@ const MLC_ACTION_BLOCKS = {
     action: 'hide', category: 'action',
     parts: [{ el: 'TARGET_EL' }, 'を隠す'],
     toParams: () => ({})
+  },
+  // パワポの「変形」に近いもの。行き先の図形を目印にして、
+  // 位置・大きさ・角度をまとめて合わせにいく。
+  // 目印はレイヤーパネルで非表示にしておける（位置だけ使われる）。
+  mlc_action_morph: {
+    action: 'move', category: 'action', duration: 0.8, easing: 'ease-in-out',
+    parts: [{ el: 'TARGET_EL' }, 'を', { el: 'TO_EL', includeHidden: true }, 'の位置・大きさに変形する'],
+    tooltip: '行き先の図形を目印にして、位置・大きさ・角度をまとめて合わせます。'
+      + '目印はレイヤーパネルで非表示にしておけます。',
+    toActions: _mlcMorphActions
   },
   mlc_action_skew: {
     action: 'skew', category: 'action',
@@ -302,7 +352,10 @@ const MLC_ACTION_BLOCKS = {
 };
 
 // 図形のドロップダウン候補。Blocklyは空配列を許さないのでフォールバックを返す。
-function mlcShapeDropdownOptions() {
+//   includeHidden: 非表示の図形も候補に入れる。
+//     「変形」の行き先のように、見た目ではなく位置だけを使う欄で必要になる
+//     （目印を非表示にしておきたいことが多いため）。
+function mlcShapeDropdownOptions(includeHidden) {
   if (typeof ensureShapeIds === 'function') ensureShapeIds();
   const list = (typeof shapes !== 'undefined' ? shapes : []) || [];
   const opts = [];
@@ -311,26 +364,38 @@ function mlcShapeDropdownOptions() {
   // （拡大・移動などがグループ全体にまとまって効く）
   const groupCounts = new Map();
   list.forEach(s => {
-    if (!s.groupId || s.hidden) return;
+    if (!s.groupId || (s.hidden && !includeHidden)) return;
     groupCounts.set(s.groupId, (groupCounts.get(s.groupId) || 0) + 1);
   });
   groupCounts.forEach((count, gid) => {
     opts.push(['グループ ' + count + '個 (' + String(gid).slice(-4) + ')', 'grp:' + gid]);
   });
 
-  list.filter(s => !s.hidden).forEach(s => {
-    const label = (s.name || s.type) + (s.groupId ? '（グループ内）' : '') + ' (' + String(s.id || '').slice(-4) + ')';
+  list.filter(s => includeHidden || !s.hidden).forEach(s => {
+    const label = (s.name || s.type)
+      + (s.groupId ? '（グループ内）' : '')
+      + (s.hidden ? '（非表示）' : '')
+      + ' (' + String(s.id || '').slice(-4) + ')';
     opts.push([label, String(s.id)]);
   });
 
   return opts.length ? opts : [['(図形がありません)', '']];
 }
 
+// 非表示の図形も含めた候補（Blocklyへは関数のまま渡すので、別名で用意する）
+function mlcShapeDropdownOptionsAll() {
+  return mlcShapeDropdownOptions(true);
+}
+
 // parts の並びをブロックの入力行に流し込む
 function _mlcAppendParts(block, input, parts) {
   parts.forEach(part => {
     if (typeof part === 'string') { input.appendField(part); return; }
-    if (part.el) { input.appendField(new Blockly.FieldDropdown(mlcShapeDropdownOptions), part.el); return; }
+    if (part.el) {
+      const options = part.includeHidden ? mlcShapeDropdownOptionsAll : mlcShapeDropdownOptions;
+      input.appendField(new Blockly.FieldDropdown(options), part.el);
+      return;
+    }
     if (part.num) { input.appendField(new Blockly.FieldNumber(part.def, part.min, part.max, part.step), part.num); return; }
     if (part.menu) { input.appendField(new Blockly.FieldDropdown(part.options), part.menu); return; }
     if (part.text) { input.appendField(new Blockly.FieldTextInput(part.def || ''), part.text); return; }
@@ -368,9 +433,9 @@ function defineMlcBlocks() {
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour(MLC_CATEGORY_COLOUR[spec.category] ?? MLC_CATEGORY_COLOUR.action);
-        this.setTooltip(spec.category === 'loop'
+        this.setTooltip(spec.tooltip || (spec.category === 'loop'
           ? 'トリガーがクリックなら「動き出す/止まる」の切り替えになります'
-          : '動かす対象は、トリガーとは別の図形も選べます');
+          : '動かす対象は、トリガーとは別の図形も選べます'));
       }
     };
   });
