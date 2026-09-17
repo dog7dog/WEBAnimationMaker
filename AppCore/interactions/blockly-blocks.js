@@ -40,6 +40,34 @@ const MLC_FLOW_COLOUR = { time: 20, page: 260 };
 
 // アクションの分類ごとのブロックの色
 const MLC_CATEGORY_COLOUR = { action: 210, entrance: 160, exit: 340, loop: 120 };
+const MLC_VALUE_COLOUR = 230; // 値ブロック（計算と同じ色）
+
+// ── 値ブロック（数を返す）────────────────────────────────────
+// 動きのブロックに直接は挿せないが、分岐・繰り返し・変数・計算と
+// 組み合わせて「500pxより下までスクロールしていたら…」が書ける。
+// 読むのはその場の値なので、「◯秒ごとに」やスクロール系のトリガーと
+// 合わせて使う。
+const MLC_VALUE_BLOCKS = {
+  mlc_value_scroll_px: {
+    parts: ['スクロールしたpx'],
+    tooltip: 'ページの先頭から、今どれだけ下へスクロールしたか（px）。先頭は0',
+    toCode: () => 'window.scrollY'
+  },
+  mlc_value_scroll_pages: {
+    parts: ['スクロールしたページ数',
+      { menu: 'MODE', options: [['（整数）', 'floor'], ['（小数あり）', 'raw']] }],
+    tooltip: '画面1つ分を1ページとして、今どれだけスクロールしたか。先頭は0。'
+      + '「小数あり」は1.5ページぶんのような途中の値も返します。',
+    toCode: b => (b.getFieldValue('MODE') === 'raw'
+      ? '(window.scrollY / window.innerHeight)'
+      : 'Math.floor(window.scrollY / window.innerHeight)')
+  },
+  mlc_value_screen_height: {
+    parts: ['画面の高さ(px)'],
+    tooltip: '見ている人の画面1つ分の高さ。1ページの長さと同じです',
+    toCode: () => 'window.innerHeight'
+  }
+};
 
 const MLC_EASING_OPTIONS = [
   ['なめらか(出だし速め)', 'ease-out'],
@@ -473,6 +501,7 @@ function _mlcAppendParts(block, input, parts) {
 function defineMlcBlocks() {
   if (typeof Blockly === 'undefined') return;
   defineMlcFlowBlocks();
+  defineMlcValueBlocks();
 
   Object.entries(MLC_TRIGGER_BLOCKS).forEach(([type, spec]) => {
     Blockly.Blocks[type] = {
@@ -517,6 +546,21 @@ function defineMlcBlocks() {
   });
 }
 
+// 値ブロック。数を返すだけなので、置ける場所はBlockly側が決めてくれる。
+function defineMlcValueBlocks() {
+  if (typeof Blockly === 'undefined') return;
+  Object.entries(MLC_VALUE_BLOCKS).forEach(([type, spec]) => {
+    Blockly.Blocks[type] = {
+      init: function () {
+        _mlcAppendParts(this, this.appendDummyInput(), spec.parts);
+        this.setOutput(true, 'Number');
+        this.setColour(MLC_VALUE_COLOUR);
+        this.setTooltip(spec.tooltip || '');
+      }
+    };
+  });
+}
+
 function defineMlcFlowBlocks() {
   if (typeof Blockly === 'undefined') return;
   Object.entries(MLC_FLOW_BLOCKS).forEach(([type, spec]) => {
@@ -546,7 +590,8 @@ function mlcToolboxJson() {
       { kind: 'category', name: '退場', colour: String(MLC_CATEGORY_COLOUR.exit), contents: blocksIn(MLC_ACTION_BLOCKS, s => s.category === 'exit') },
       { kind: 'category', name: 'ずっと動く', colour: String(MLC_CATEGORY_COLOUR.loop), contents: blocksIn(MLC_ACTION_BLOCKS, s => s.category === 'loop') },
       { kind: 'category', name: '時間', colour: String(MLC_FLOW_COLOUR.time), contents: blocksIn(MLC_FLOW_BLOCKS, s => s.group === 'time') },
-      { kind: 'category', name: 'ページ', colour: String(MLC_FLOW_COLOUR.page), contents: blocksIn(MLC_FLOW_BLOCKS, s => s.group === 'page') },
+      { kind: 'category', name: 'ページ', colour: String(MLC_FLOW_COLOUR.page),
+        contents: blocksIn(MLC_FLOW_BLOCKS, s => s.group === 'page').concat(blocksIn(MLC_VALUE_BLOCKS)) },
       // ここから下はBlockly標準のブロック（分岐・繰り返し・計算・変数・関数）
       { kind: 'category', name: '分岐', colour: '210', contents: b(['controls_if', 'logic_compare', 'logic_operation', 'logic_negate', 'logic_boolean']) },
       { kind: 'category', name: '繰り返し', colour: '120', contents: [

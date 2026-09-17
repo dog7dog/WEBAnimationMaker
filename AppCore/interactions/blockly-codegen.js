@@ -86,6 +86,13 @@ function registerMlcJsGenerators() {
     return 'mlcOpen(' + JSON.stringify(block.getFieldValue('URL') || '') + ');\n';
   });
 
+  // 値ブロック: そのまま読める式を返す（分岐や計算の中で使われる）
+  Object.entries(MLC_VALUE_BLOCKS).forEach(([type, spec]) => {
+    put(type, function (block) {
+      return [spec.toCode(block), gen.ORDER_ATOMIC ?? 0];
+    });
+  });
+
   // トリガー(帽子)ブロック本体はここでは何も出さない。
   // 下に繋がった処理をイベントリスナーで包む形は
   // generateBlocklyProgramJs() 側が組み立てる。
