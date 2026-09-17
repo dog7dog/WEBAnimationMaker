@@ -269,6 +269,42 @@ function findInteractionConflicts(rules) {
   return warnings;
 }
 
+// 消された図形を指したままのルールを探す。
+// ブロックは残っているのに何も起きない状態になるので、気づけるようにする。
+//   ・動かす対象／きっかけの図形が無くなった
+//   ・「変形」の行き先や「軌道」の線が無くなった（params.missingRef）
+function findMissingInteractionTargets(rules) {
+  const list = rules || (typeof interactions !== 'undefined' ? interactions : []) || [];
+  if (typeof shapes === 'undefined' || !Array.isArray(shapes)) return [];
+
+  const gone = new Set();
+  let brokenRefs = 0;
+
+  list.forEach(rule => {
+    [rule.triggerElementId, rule.targetId].forEach(id => {
+      if (id && !interactionTargetExists(id)) gone.add(id);
+    });
+    const step = rule.steps && rule.steps[0];
+    if ((step?.actions || []).some(a => a && a.params && a.params.missingRef)) brokenRefs++;
+  });
+
+  const warnings = [];
+  if (gone.size) {
+    warnings.push({
+      kind: 'missing',
+      message: '消された図形を指しているブロックがあります（' + gone.size + '個の図形）。'
+        + '図形を選び直すか、ブロックを外してください。'
+    });
+  }
+  if (brokenRefs) {
+    warnings.push({
+      kind: 'missing-ref',
+      message: '「変形」の行き先や「軌道」の線が見つからないブロックが ' + brokenRefs + '個あります。'
+    });
+  }
+  return warnings;
+}
+
 // ── CRUD ─────────────────────────────────────────────────────
 function getInteraction(id) {
   return (interactions || []).find(r => r.id === id) || null;

@@ -7,6 +7,11 @@
 // ══════════════════════════════════════════════════════════════
 
 function buildSiteParts() {
+  // 「変形」「軌道」は図形の今の位置から差分を出している。書き出す直前に
+  // ブロックからルールを作り直して、最新の配置を反映する
+  // （キャンバスタブを開かずに書き出しても古い位置にならないように）。
+  if (typeof refreshInteractionsFromBlockly === 'function') refreshInteractionsFromBlockly();
+
   const shapesCss = typeof buildMirrorStageCss === 'function' ? buildMirrorStageCss() : '';
   const bodyHtml = typeof buildMirrorStageHtml === 'function' ? buildMirrorStageHtml() : '';
   const { css: interactionCss, js } =

@@ -73,7 +73,9 @@ function regenerateInteractionsFromBlockly() {
   const rules = blocklyWorkspaceToInteractions(mlcBlocklyWorkspace);
   interactions.splice(0, interactions.length, ...rules);
 
-  const warnings = typeof findInteractionConflicts === 'function' ? findInteractionConflicts() : [];
+  const warnings = []
+    .concat(typeof findInteractionConflicts === 'function' ? findInteractionConflicts() : [])
+    .concat(typeof findMissingInteractionTargets === 'function' ? findMissingInteractionTargets() : []);
   renderCodingPreview(warnings);
 
   if (typeof isInteractionPreviewActive === 'function' && isInteractionPreviewActive()) {
@@ -82,6 +84,15 @@ function regenerateInteractionsFromBlockly() {
 
   // テキストエディタにも同じプログラムを映す
   if (typeof syncGeneratedCodeToEditor === 'function') syncGeneratedCodeToEditor();
+}
+
+// ブロックからルールだけを作り直す（画面まわりの更新はしない）。
+// 「変形」「軌道」は図形の今の位置から差分を出しているので、
+// 書き出す直前など、最新の配置を反映したいときに使う。
+function refreshInteractionsFromBlockly() {
+  if (!mlcBlocklyWorkspace) return false;
+  interactions.splice(0, interactions.length, ...blocklyWorkspaceToInteractions(mlcBlocklyWorkspace));
+  return true;
 }
 
 function scheduleBlocklyRegen() {

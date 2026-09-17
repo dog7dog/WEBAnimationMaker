@@ -550,17 +550,21 @@ function openTextInlineEditor(shape) {
   selected = shape;
 
   const r = cv.getBoundingClientRect();
+  // 画面上の見た目に重ねる。図形の値はドキュメント座標なので、ズームを掛ける
+  // （掛けないと、拡大・縮小しているときに編集枠が文字からずれる）。
+  const z = (typeof mpView !== 'undefined' && mpView.zoom) || 1;
+  const fontSize = shape.fontSize || 24;
   const ta = document.createElement('textarea');
   ta.className = 'mp-text-inline-editor';
   ta.spellcheck = false;
   ta.value = shape.text || '';
-  ta.style.left = (r.left + shape.x) + 'px';
-  ta.style.top = (r.top + shape.y) + 'px';
-  ta.style.width = shape.w + 'px';
-  ta.style.height = shape.h + 'px';
+  ta.style.left = (r.left + shape.x * z) + 'px';
+  ta.style.top = (r.top + shape.y * z) + 'px';
+  ta.style.width = (shape.w * z) + 'px';
+  ta.style.height = (shape.h * z) + 'px';
   ta.style.fontFamily = shape.fontFamily || 'sans-serif';
-  ta.style.fontSize = (shape.fontSize || 24) + 'px';
-  ta.style.lineHeight = Math.round((shape.fontSize || 24) * 1.3) + 'px';
+  ta.style.fontSize = (fontSize * z) + 'px';
+  ta.style.lineHeight = Math.round(fontSize * 1.3 * z) + 'px';
   ta.style.color = shape.color || '#fff';
   ta.style.background = canvasBg;
   document.body.appendChild(ta);

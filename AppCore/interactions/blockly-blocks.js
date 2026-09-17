@@ -89,7 +89,8 @@ function _mlcMorphActions(block) {
   const round = (v, d) => Math.round(v * d) / d;
 
   let dx = 0, dy = 0, sx = 1, sy = 1, deg = 0;
-  if (from && to && from.w > 0 && from.h > 0) {
+  const missingRef = !(from && to && from.w > 0 && from.h > 0);
+  if (!missingRef) {
     dx = round((to.x + to.w / 2) - (from.x + from.w / 2), 1);
     dy = round((to.y + to.h / 2) - (from.y + from.h / 2), 1);
     sx = round(to.w / from.w, 1000);
@@ -97,7 +98,8 @@ function _mlcMorphActions(block) {
     deg = round(to.rot - from.rot, 10);
   }
   return [
-    { type: 'move', params: { dx, dy } },
+    // 行き先が見つからないときは印を付けて、コーディングタブで知らせる
+    { type: 'move', params: missingRef ? { dx, dy, missingRef } : { dx, dy } },
     { type: 'stretch', params: { sx, sy } },
     { type: 'rotate', params: { deg } }
   ];
@@ -438,7 +440,8 @@ function _mlcPathActions(block) {
   const lineId = block.getFieldValue('PATH_EL');
   const line = (typeof shapes !== 'undefined' ? shapes : []).find(s => s.id === lineId);
   const pts = _mlcLinePoints(line);
-  if (!from || pts.length < 2) return [{ type: 'path', params: { points: [] } }];
+  // 線が見つからない（消された・まだ選んでいない）ときは印を付ける
+  if (!from || pts.length < 2) return [{ type: 'path', params: { points: [], missingRef: true } }];
 
   const cx = from.x + from.w / 2;
   const cy = from.y + from.h / 2;
