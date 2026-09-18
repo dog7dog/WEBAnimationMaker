@@ -75,7 +75,8 @@ function regenerateInteractionsFromBlockly() {
 
   const warnings = []
     .concat(typeof findInteractionConflicts === 'function' ? findInteractionConflicts() : [])
-    .concat(typeof findMissingInteractionTargets === 'function' ? findMissingInteractionTargets() : []);
+    .concat(typeof findMissingInteractionTargets === 'function' ? findMissingInteractionTargets() : [])
+    .concat(typeof findScrollValueMisuse === 'function' ? findScrollValueMisuse(mlcBlocklyWorkspace) : []);
   renderCodingPreview(warnings);
 
   if (typeof isInteractionPreviewActive === 'function' && isInteractionPreviewActive()) {

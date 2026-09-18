@@ -639,6 +639,32 @@ function mlcToolboxJson() {
   };
 }
 
+// 「ページが表示されたとき」の中でスクロールの値を見ている組み方を見つける。
+// 読み込んだ時の1回しか判定されないので、スクロールしても何も起きない。
+// 黙って動かないと原因が分からないので、コーディングタブで知らせる。
+function findScrollValueMisuse(ws) {
+  const workspace = ws || (typeof mlcBlocklyWorkspace !== 'undefined' ? mlcBlocklyWorkspace : null);
+  if (!workspace) return [];
+
+  const scrollValues = ['mlc_value_scroll_px', 'mlc_value_scroll_pages'];
+  const onceOnly = ['load', 'click', 'dblclick', 'key'];
+  const warnings = [];
+
+  workspace.getTopBlocks(true).forEach(top => {
+    const spec = MLC_TRIGGER_BLOCKS[top.type];
+    if (!spec || !onceOnly.includes(spec.trigger)) return;
+    const uses = top.getDescendants(false).some(b => scrollValues.includes(b.type));
+    if (!uses) return;
+    warnings.push({
+      kind: 'scroll-value-once',
+      message: '「' + top.toString().split('\n')[0] + '」の中でスクロールの値を見ています。'
+        + 'そのときの1回しか判定しないので、スクロールしても変わりません。'
+        + 'トリガーを「スクロールするたびに」に変えてください。'
+    });
+  });
+  return warnings;
+}
+
 // ワークスペース → InteractionRule[]
 //   ルールidはブロックidから決定的に作る。こうすると編集のたびに作り直しても
 //   同じブロックには同じCSSクラス名が割り当てられ、再生成が冪等になる。
