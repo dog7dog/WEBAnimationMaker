@@ -89,6 +89,7 @@ function buildMirrorStageCss() {
     }
     out.push(shapeCssRules(entry.shape, entry.index));
   });
+  out.push(buildSnapCss());
   return out.filter(Boolean).join('\n');
 }
 
@@ -106,6 +107,27 @@ function _mirrorStyleEl() {
   return el;
 }
 
+// ページごとに吸い付く（スナップ）ための目印。
+// 1画面ぶんごとに置いた点に吸着させるので、要素の配置には影響しない。
+function buildSnapMarkersHtml() {
+  if (!pageSnap) return '';
+  const step = Number(pageViewHeight) || 0;
+  if (step < 40) return '';
+  const out = [];
+  for (let y = 0; y < (docH || 720); y += step) {
+    out.push('<div class="mlc-snap" style="top:' + Math.round(y) + 'px"></div>');
+  }
+  return out.join('\n');
+}
+
+function buildSnapCss() {
+  if (!pageSnap) return '';
+  // スクロールする側（書き出し先ではページ全体、プレビューではステージの外枠）
+  return 'html, #mlc-stage-wrap { scroll-snap-type: y proximity; }\n'
+    + '.mlc-snap { position: absolute; left: 0; width: 1px; height: 1px;'
+    + ' pointer-events: none; scroll-snap-align: start; }';
+}
+
 function buildMirrorStageHtml() {
   const out = [];
   _eachMirrorEntry(entry => {
@@ -121,6 +143,8 @@ function buildMirrorStageHtml() {
     }
     out.push(buildMirrorElementHtml(entry.shape, entry.index));
   });
+  const snap = buildSnapMarkersHtml();
+  if (snap) out.push(snap);
   return out.filter(Boolean).join('\n');
 }
 

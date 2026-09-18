@@ -55,6 +55,12 @@ function syncProps() {
   const dashEl = document.getElementById('p-dash');
   if (dashEl) dashEl.value = selected.dash || '0';
 
+  // 画面に貼り付く（グループの中の図形は外枠ごと動くので対象外）
+  const stickyRow = document.getElementById('row-sticky');
+  const stickyEl = document.getElementById('p-sticky');
+  if (stickyRow) stickyRow.style.display = selected.groupId ? 'none' : 'flex';
+  if (stickyEl) stickyEl.checked = !!selected.sticky;
+
 }
 
 // 数値欄に出すときの丸め（0.5刻みの線幅などが 2.0000001 のように出ないように）
@@ -143,6 +149,16 @@ document.getElementById('p-text-font')?.addEventListener('change', e => {
   }
 });
 
+
+document.getElementById('p-sticky')?.addEventListener('change', e => {
+  if (!selected) return;
+  _ppBeforeEdit(true);
+  selected.sticky = e.target.checked;
+  syncAll();
+  if (typeof setStatus === 'function') {
+    setStatus(selected.sticky ? '画面に固定しました' : '固定を解除しました');
+  }
+});
 
 document.getElementById('p-dash').addEventListener('change', e => {
   dash = e.target.value;

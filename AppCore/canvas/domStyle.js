@@ -26,7 +26,22 @@ function shapeToCssDecl(s, origin) {
   const b = getBounds(s);
   const ox = origin ? origin.x : 0;
   const oy = origin ? origin.y : 0;
-  const outer = {
+  // 画面に貼り付く図形は、スクロールしても同じ位置に残す。
+  //   position:sticky を使う。fixed だと基準がブラウザの画面になり、
+  //   プレビューではアプリのUIの上にはみ出してしまう。sticky なら
+  //   「ページ（ステージ）の中で、画面の上から◯px の所に留まる」になり、
+  //   書き出したページでもプレビューでも同じCSSのまま正しく貼り付く。
+  //   流れの中に置く必要があるので、他の図形（絶対配置）とは別扱いにし、
+  //   場所取りぶんの高さは margin で打ち消す。
+  //   グループの中の図形は、外枠ごと動くので対象外。
+  const sticky = !!s.sticky && !origin;
+  const outer = sticky ? {
+    position: 'sticky',
+    top: Math.round(b.y) + 'px',
+    'margin-left': Math.round(b.x) + 'px',
+    'margin-bottom': (-Math.round(b.h)) + 'px',
+    'z-index': '5',
+  } : {
     position: 'absolute',
     left: Math.round(b.x - ox) + 'px',
     top: Math.round(b.y - oy) + 'px',
@@ -37,6 +52,13 @@ function shapeToCssDecl(s, origin) {
     // Trigger/ActionのCSS transformが要素の中心を基準に効くようにする
     'transform-origin': 'center'
   };
+  if (sticky) {
+    outer.width = Math.round(b.w) + 'px';
+    outer.height = Math.round(b.h) + 'px';
+    outer['box-sizing'] = 'border-box';
+    outer.opacity = String((s.opa ?? 100) / 100);
+    outer['transform-origin'] = 'center';
+  }
 
   const inner = {
     width: '100%',

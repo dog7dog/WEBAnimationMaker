@@ -91,6 +91,9 @@ let docH = Number(localStorage.getItem('mpDocH')) || 720;
 // デザイン中に区切り線をどこへ引くかという目安。
 let pageViewHeight = Number(localStorage.getItem('mpPageViewH')) || 720;
 
+// ページごとに吸い付くスクロール（1画面ずつピタッと止まる）
+let pageSnap = false;
+
 // コピペ
 let clipboard = null;
 

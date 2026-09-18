@@ -2581,6 +2581,11 @@ body {
 #mp-page-badge button:hover { background: var(--bg3); }
 #mp-page-badge .mp-page-lbl { font-size: 11px; color: var(--fg2); }
 #mp-page-badge .mp-page-num { font: 11px monospace; color: var(--fg0); }
+#mp-page-badge #mp-page-snap { color: var(--fg3); }
+#mp-page-badge #mp-page-snap.on { color: var(--accent); }
+#mp-page-badge #mp-page-snap:hover { background: var(--bg3); }
+.pp-chk { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--fg1); cursor: pointer; }
+.pp-chk input { margin: 0; accent-color: var(--accent); cursor: pointer; }
 #mp-page-badge #mp-page-match { color: var(--fg1); }
 #mp-page-badge #mp-page-match:hover { color: var(--accent); }
 #mp-page-badge input {

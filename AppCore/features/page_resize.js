@@ -217,6 +217,18 @@ function setPageViewHeight(h) {
   _syncPageBadge();
 }
 
+// 1ページずつ吸い付くスクロールの切り替え。書き出したページにも効く。
+function togglePageSnap() {
+  pageSnap = !pageSnap;
+  const btn = document.getElementById('mp-page-snap');
+  if (btn) btn.classList.toggle('on', pageSnap);
+  if (typeof syncAll === 'function') syncAll();
+  if (typeof toast === 'function') {
+    toast(pageSnap ? 'ti-magnet' : 'ti-magnet-off',
+      'ページごとに吸い付く: ' + (pageSnap ? 'ON' : 'OFF'));
+  }
+}
+
 function togglePageGuides() {
   showPageGuides = !showPageGuides;
   try { localStorage.setItem('mpPageGuides', showPageGuides ? '1' : '0'); } catch (e) { /* noop */ }
@@ -231,6 +243,7 @@ function _syncPageBadge() {
   const badge = document.getElementById('mp-page-badge');
   if (!badge) return;
   badge.classList.toggle('off', !showPageGuides);
+  document.getElementById('mp-page-snap')?.classList.toggle('on', pageSnap);
   const input = document.getElementById('mp-page-h');
   if (input && document.activeElement !== input) input.value = pageViewHeight;
   const wEl = document.getElementById('mp-page-w');
@@ -258,11 +271,14 @@ function initPageBadge() {
     + '<span class="mp-page-lbl">px</span>'
     + '<button id="mp-page-match" title="別タブのプレビュー窓の大きさを、そのまま1ページにする">'
     + '<i class="ti ti-device-desktop"></i></button>'
+    + '<button id="mp-page-snap" title="1ページずつピタッと止まるスクロールにする">'
+    + '<i class="ti ti-magnet"></i></button>'
     + '<span id="mp-page-count" title="今のページの長さ"></span>';
   area.appendChild(badge);
 
   badge.querySelector('#mp-page-toggle').onclick = togglePageGuides;
   badge.querySelector('#mp-page-match').onclick = matchPageToPreview;
+  badge.querySelector('#mp-page-snap').onclick = togglePageSnap;
   const input = badge.querySelector('#mp-page-h');
   input.addEventListener('input', e => setPageViewHeight(e.target.value));
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
@@ -270,6 +286,7 @@ function initPageBadge() {
 }
 
 window.matchPageToPreview = matchPageToPreview;
+window.togglePageSnap = togglePageSnap;
 window.applyPreviewViewport = applyPreviewViewport;
 window.drawPageGuides = drawPageGuides;
 window.togglePageGuides = togglePageGuides;

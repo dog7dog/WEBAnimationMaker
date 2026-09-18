@@ -16,6 +16,7 @@ function serializeProject() {
     canvasBg: canvasBg || '#111111',
     docW: docW || 1280,
     docH: docH || 720,
+    pageSnap: !!pageSnap,
     // Trigger→Animation/Action。編集可能な原本はBlocklyワークスペース側で、
     // interactions はそこから再生成される導出データ（読み込みを速くするための控え）。
     blockly: typeof serializeBlocklyState === 'function' ? serializeBlocklyState() : null,
@@ -88,6 +89,7 @@ function deserializeProject(data) {
   // ワークスペースが保存されていれば、そちらを原本として interactions を作り直す
   if (typeof restoreBlocklyState === 'function') restoreBlocklyState(data.blockly || null);
   if (data.canvasBg) { canvasBg = data.canvasBg; }
+  pageSnap = !!data.pageSnap;
   // 保存されたドキュメントサイズを復元。無い旧形式のファイルは
   // 現在のサイズをそのまま維持する（強制的に縮めて図形を消さないため）。
   if (Number(data.docW) > 0 && Number(data.docH) > 0) {
