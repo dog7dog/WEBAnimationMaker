@@ -2564,6 +2564,20 @@ body {
 .mp-menu-row button { flex: 1; padding: 0 6px; }
 
 /* ── ズームバッジ ── */
+/* プレビューの再生バー（キャンバスタブのヘッダー） */
+#mp-play-bar {
+  display: flex; align-items: center; gap: 5px;
+  padding-right: 8px; margin-right: 4px;
+  border-right: 1px solid var(--border2);
+}
+#mp-play-bar button {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; color: var(--fg1); cursor: pointer; font-size: 13px; border-radius: 4px;
+}
+#mp-play-bar button:hover { background: var(--bg3); color: var(--fg0); }
+#mp-play-range { width: 120px; accent-color: var(--accent); cursor: pointer; }
+#mp-play-val { font: 10px monospace; color: var(--fg3); width: 32px; text-align: right; }
+
 /* ページの区切り線の操作（キャンバスの左下） */
 #mp-page-badge {
   position: absolute; bottom: 10px; left: 10px;

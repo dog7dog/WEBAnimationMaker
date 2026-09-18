@@ -535,7 +535,10 @@ function defineMlcBlocks() {
           .appendField('秒 遅れ')
           .appendField(new Blockly.FieldNumber(0, 0, 60, 0.05), 'DELAY')
           .appendField('秒')
-          .appendField(new Blockly.FieldDropdown(MLC_EASING_OPTIONS), 'EASING');
+          .appendField(new Blockly.FieldDropdown(MLC_EASING_OPTIONS), 'EASING')
+          .appendField('ずらし')
+          .appendField(new Blockly.FieldNumber(0, 0, 10, 0.05), 'STAGGER')
+          .appendField('秒');
         if (spec.easing) this.setFieldValue(spec.easing, 'EASING');
         // ずっと動く系だけ、くり返し方を選べるようにする
         if (spec.category === 'loop') {
@@ -647,8 +650,29 @@ function mlcRuleIdForBlock(block) {
   return 'ir_' + String(block.id).replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
+// 「ずらし」が指定されていて、対象がグループなら、メンバーごとのルールに分ける。
+// 遅れを少しずつ増やすだけなので、出現・退場・ずっと動く のどれでも使える。
+function _mlcStaggeredRules(opts, stagger) {
+  const targetId = String(opts.targetId || '');
+  if (!(stagger > 0) || !targetId.startsWith('grp:')) return [createInteractionRule(opts)];
+
+  const members = (typeof getGroupMembers === 'function' ? getGroupMembers(targetId.slice(4)) : []) || [];
+  const usable = members.filter(m => m && m.id && !m.hidden);
+  if (usable.length < 2) return [createInteractionRule(opts)];
+
+  return usable.map((m, i) => createInteractionRule({
+    ...opts,
+    id: opts.id + '_s' + i,
+    targetId: m.id,
+    delay: (Number(opts.delay) || 0) + stagger * i
+  }));
+}
+
 function blocklyWorkspaceToInteractions(ws) {
   const rules = [];
+  // 宣言的な経路で扱い終えたブロック。ルールidではなくブロックidで覚える
+  // （「ずらし」でメンバーごとに分けると、ルールidが元のままではなくなるため）。
+  const handledBlocks = new Set();
   if (!ws) return rules;
 
   ws.getTopBlocks(true).forEach(top => {
@@ -671,7 +695,8 @@ function blocklyWorkspaceToInteractions(ws) {
       if (aSpec) {
         const targetId = block.getFieldValue('TARGET_EL');
         if (targetId) {
-          rules.push(createInteractionRule({
+          handledBlocks.add(block.id);
+          rules.push(..._mlcStaggeredRules({
             id: mlcRuleIdForBlock(block),
             triggerElementId: triggerElementId || targetId,
             targetId,
@@ -686,7 +711,7 @@ function blocklyWorkspaceToInteractions(ws) {
             easing: block.getFieldValue('EASING'),
             repeat: Number(block.getFieldValue('REPEAT')) || 0,
             direction: block.getFieldValue('DIRECTION') || 'normal'
-          }));
+          }, Number(block.getFieldValue('STAGGER')) || 0));
         }
       }
       block = block.getNextBlock();
@@ -696,12 +721,11 @@ function blocklyWorkspaceToInteractions(ws) {
   // 宣言的な経路で拾えなかったアクション（制御構造の中、関数定義の中など）にも
   // CSSルールだけは用意する。実行はJS側(blockly-codegen.js)が担当するので
   // リスナーは作らせない(jsDriven)。
-  const covered = new Set(rules.map(r => r.id));
   ws.getAllBlocks(false).forEach(block => {
     const aSpec = MLC_ACTION_BLOCKS[block.type];
     if (!aSpec) return;
+    if (handledBlocks.has(block.id)) return;
     const id = mlcRuleIdForBlock(block);
-    if (covered.has(id)) return;
     const targetId = block.getFieldValue('TARGET_EL');
     if (!targetId) return;
 
@@ -722,7 +746,7 @@ function blocklyWorkspaceToInteractions(ws) {
     });
     rule.jsDriven = true;
     rules.push(rule);
-    covered.add(id);
+    handledBlocks.add(block.id);
   });
 
   return rules;
