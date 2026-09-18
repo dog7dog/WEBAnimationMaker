@@ -179,8 +179,27 @@ function _mlcWrapTrigger(spec, top, body) {
   const inner = _mlcIndent(body, '    ');
 
   if (spec.noElement && spec.trigger === 'load') {
-    return 'document.addEventListener("DOMContentLoaded", async function () {\n'
-      + _mlcIndent(body, '  ') + '});\n';
+    // すでに読み込みが終わっていると DOMContentLoaded は二度と来ない。
+    // プレビューは表示中のページへあとから流し込むので、待つだけだと
+    // 一度も動かない。読み込み済みならその場で実行する。
+    return '(function () {\n'
+      + '  async function run() {\n'
+      + _mlcIndent(body, '    ')
+      + '  }\n'
+      + '  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);\n'
+      + '  else run();\n'
+      + '})();\n';
+  }
+
+  if (spec.noElement && spec.trigger === 'scrollany') {
+    // スクロールするたびに中身を見直す。読み込み直後にも1回見る。
+    return '(function () {\n'
+      + '  async function run() {\n'
+      + _mlcIndent(body, '    ')
+      + '  }\n'
+      + '  window.addEventListener("scroll", run, { passive: true });\n'
+      + '  run();\n'
+      + '})();\n';
   }
 
   if (spec.noElement && spec.trigger === 'key') {

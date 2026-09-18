@@ -13,6 +13,8 @@
 
 const INTERACTION_TRIGGER_TYPES = [
   'click', 'dblclick', 'hover', 'press', 'inview', 'load', 'key', 'scroll', 'scrollpage', 'timer',
+  // スクロールするたびに見直す（分岐と組み合わせて使う）
+  'scrollany',
   // スクロール連動（時間ではなくスクロール位置で進む）
   'scrollview', 'scrollprogress'
 ];
@@ -43,7 +45,7 @@ const INTERACTION_TOGGLE_MODES = ['once', 'hold', 'toggle', 'scrub'];
 const INTERACTION_DEFAULT_TOGGLE = {
   click: 'toggle', dblclick: 'toggle', hover: 'hold', press: 'hold',
   inview: 'toggle', load: 'once', key: 'toggle',
-  scroll: 'toggle', scrollpage: 'toggle', timer: 'toggle',
+  scroll: 'toggle', scrollpage: 'toggle', timer: 'toggle', scrollany: 'toggle',
   scrollview: 'scrub', scrollprogress: 'scrub'
 };
 

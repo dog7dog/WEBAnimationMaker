@@ -126,6 +126,23 @@ function generateInteractionJS(rules) {
       return;
     }
 
+    if (rule.trigger?.type === 'scrollany') {
+      // 動きのブロックを直接つないだ場合は「少しでもスクロールしていたら」。
+      // 分岐と組み合わせたときは、こちらではなく命令的JS側が受け持つ。
+      lines.push(
+        '(function () {\n' +
+        '  var t = document.querySelector(' + JSON.stringify(targetSel) + ');\n' +
+        '  if (!t) return;\n' +
+        '  function update() {\n' +
+        '    t.classList.toggle(' + JSON.stringify(activeCls) + ', window.scrollY > 0);\n' +
+        '  }\n' +
+        '  window.addEventListener("scroll", update, { passive: true });\n' +
+        '  update();\n' +
+        '})();'
+      );
+      return;
+    }
+
     if (rule.trigger?.type === 'scroll') {
       // 指定量までスクロールしたら有効、戻したら解除。
       // 読み込み直後にも一度判定して、途中から始まるページでもズレないようにする。

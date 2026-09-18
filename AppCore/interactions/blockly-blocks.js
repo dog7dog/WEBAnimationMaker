@@ -200,6 +200,15 @@ const MLC_TRIGGER_BLOCKS = {
     parts: ['ページのスクロールに合わせて'],
     tooltip: 'ページ全体のスクロール量（先頭で0%、最後で100%）で下の動きが進みます。'
   },
+  // スクロールするたびに見直す。「もし スクロールしたpx > ◯ なら」のように
+  // 分岐と組み合わせて使う。動きのブロックを直接つないだ場合は
+  // 「少しでもスクロールしていたら」という意味になる。
+  mlc_when_scroll_any: {
+    trigger: 'scrollany', toggleMode: 'toggle', noElement: true,
+    parts: ['スクロールするたびに'],
+    tooltip: '分岐と組み合わせて使います。'
+      + '例: もし「スクロールしたページ数」＝1 なら → 拡大する'
+  },
   mlc_when_timer: {
     trigger: 'timer', toggleMode: 'toggle', noElement: true,
     parts: [{ num: 'SEC', def: 2, min: 0.1, max: 600, step: 0.1 }, '秒ごとに'],
