@@ -39,6 +39,7 @@
         <a class="sub" href="#api-getSelected">getSelected</a>
         <a class="sub" href="#api-setSelectedPatch">setSelectedPatch</a>
         <a class="sub" href="#api-redraw">redraw</a>
+        <a class="sub" href="#api-registerTriggerBlock">registerTriggerBlock / registerActionBlock</a>
         <a class="sub" href="#api-registerUI">registerUI</a>
         <a class="sub" href="#api-registerFileMenuItem">registerFileMenuItem</a>
         <a class="sub" href="#api-createLayer">createLayer</a>
@@ -186,6 +187,7 @@
           <a href="#api-getSelected">getSelected</a>
           <a href="#api-setSelectedPatch">setSelectedPatch</a>
           <a href="#api-redraw">redraw</a>
+          <a href="#api-registerTriggerBlock">registerTriggerBlock / registerActionBlock</a>
           <a href="#api-registerUI">registerUI</a>
           <a href="#api-registerFileMenuItem">registerFileMenuItem</a>
           <a href="#api-createLayer">createLayer</a>
@@ -353,6 +355,39 @@ if (s) console.log(s.type, s.x, s.y);</code></pre>
         <h3>requestRender() / redraw()</h3>
         <p>キャンバスの再描画を要求します。図形データを直接書き換えた後など、画面に即座に反映させたいときに <code>api.redraw()</code> を呼びます。</p>
         <pre><code>api.redraw();</code></pre>
+      </section>
+
+      <section id="api-registerTriggerBlock">
+        <h4 class="api-cat">コーディング拡張</h4>
+        <h3>registerTriggerBlock(type, spec) / registerActionBlock(type, spec)</h3>
+        <p>コーディングタブ（Blockly）に、独自のトリガー・アクションブロックを追加します。追加したブロックは既存のトリガー/アクション（クリック・スクロール・拡大・移動…）と同じ仕組みに間借りするので、ツールボックスへの表示・CSS/JS生成・警告チェックは自動でついてきます。MOD側で追加の登録は不要です。そのぶん <code>trigger</code> / <code>action</code> には既存の種別のどれかを指定する必要があります。まったく新しい効果をCSSレベルから足したい場合はこの2つの対象外です。</p>
+        <pre><code>// アクションブロックの例: 傾ける(skew)を使った「グリッチ」ブロック
+api.registerActionBlock("mod_glitch", {
+  action: "skew",              // 必須。INTERACTION_ACTION_TYPES のいずれか
+  category: "action",          // 省略可。"action"(既定) / "entrance" / "exit" / "loop"
+  duration: 0.3,                // 省略可。時間欄の既定値（秒）
+  parts: [{ el: "TARGET_EL" }, "にグリッチをかける"],
+  tooltip: "一瞬だけガタつかせます",
+  toParams: (block) => ({ dx: 20, dy: -10 })
+});
+
+// トリガーブロックの例: ダブルタップ(dblclickを流用)
+api.registerTriggerBlock("mod_when_double_tap", {
+  trigger: "dblclick",         // 必須。INTERACTION_TRIGGER_TYPES のいずれか
+  toggleMode: "toggle",        // 必須。INTERACTION_TOGGLE_MODES のいずれか
+  parts: [{ el: "TRIGGER_EL" }, "をダブルタップしたら"]
+});</code></pre>
+        <p><code>type</code> はアプリ内で一意な識別子です。他のMODや組み込みブロックと衝突しないよう <code>"mod_&lt;あなたのMODのid&gt;_..."</code> のように名前空間を切ってください。重複していたり <code>trigger</code>/<code>action</code> が未対応の種別だと、コンソールに警告を出して登録を拒否します（戻り値は <code>false</code>）。</p>
+        <p><code>parts</code> の書式は <code>registerShapeType</code> 等と同じブロック部品の指定です。<code>{ el: "NAME" }</code>（図形選択）・<code>{ num: "NAME", def, min, max, step }</code>（数値）・<code>{ menu: "NAME", options }</code>（選択肢）・<code>{ text: "NAME", def }</code>（文字入力）・文字列そのまま（ラベル）が使えます。</p>
+        <table class="api-table">
+          <thead><tr><th>一覧</th><th>値</th></tr></thead>
+          <tbody>
+            <tr><td>INTERACTION_TRIGGER_TYPES</td><td><code>click</code> <code>dblclick</code> <code>hover</code> <code>press</code> <code>inview</code> <code>load</code> <code>key</code> <code>scroll</code> <code>scrollpage</code> <code>scrollany</code> <code>timer</code> <code>scrollview</code> <code>scrollprogress</code></td></tr>
+            <tr><td>INTERACTION_TOGGLE_MODES</td><td><code>once</code>（1回きり）<code>hold</code>（押している/乗っている間）<code>toggle</code>（ON/OFF切り替え）<code>scrub</code>（スクロール位置に連動。scrollview/scrollprogress専用）</td></tr>
+            <tr><td>INTERACTION_ACTION_TYPES</td><td><code>scale</code> <code>fade</code> <code>move</code> <code>slide</code> <code>rotate</code> <code>show</code> <code>hide</code> <code>skew</code> <code>flip</code> <code>stretch</code> <code>blur</code> <code>brightness</code> <code>grayscale</code> <code>saturate</code> <code>hue</code> <code>glow</code> <code>pulse</code> <code>spin</code> <code>float</code> <code>shake</code> <code>swing</code> <code>blink</code> <code>bounce</code> <code>path</code></td></tr>
+          </tbody>
+        </table>
+        <p><code>toParams(block)</code> は単一の <code>{ type: action, params }</code> を、<code>toActions(block)</code> は複数のアクション <code>[{ type, params }, ...]</code> を組み立てます（どちらか一方が必須）。複数のアクションを1ブロックにまとめたい場合（例: 拡大しながらフェード）は <code>toActions</code> を使ってください。組み込みの「大きくしながら出す」ブロックが実例です。</p>
       </section>
 
       <section id="api-registerUI">

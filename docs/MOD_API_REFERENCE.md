@@ -176,6 +176,62 @@ api.redraw();
 
 ---
 
+## registerTriggerBlock(type, spec) / registerActionBlock(type, spec)
+
+コーディングタブ（Blockly）に、独自のトリガー・アクションブロックを追加します。
+
+追加したブロックは、既存のトリガー/アクション（クリック・スクロール・拡大・移動…）と
+同じ仕組みに間借りするので、ツールボックスへの表示・CSS/JS生成・警告チェックは
+自動でついてきます。MOD側で追加の登録は不要です。そのぶん、`trigger` / `action` には
+**既存の種別のどれか**を指定する必要があります（表は下記）。まったく新しい効果を
+CSSレベルから足したい場合はこの2つの対象外です。
+
+```js
+// アクションブロックの例: 傾ける(skew)を使った「グリッチ」ブロック
+api.registerActionBlock("mod_glitch", {
+  action: "skew",              // 必須。INTERACTION_ACTION_TYPES のいずれか
+  category: "action",          // 省略可。"action"(既定) / "entrance" / "exit" / "loop"
+  duration: 0.3,                // 省略可。時間欄の既定値（秒）
+  parts: [{ el: "TARGET_EL" }, "にグリッチをかける"],
+  tooltip: "一瞬だけガタつかせます",
+  toParams: (block) => ({ dx: 20, dy: -10 })
+});
+
+// トリガーブロックの例: ダブルタップ(dblclickを流用)
+api.registerTriggerBlock("mod_when_double_tap", {
+  trigger: "dblclick",         // 必須。INTERACTION_TRIGGER_TYPES のいずれか
+  toggleMode: "toggle",        // 必須。INTERACTION_TOGGLE_MODES のいずれか
+  parts: [{ el: "TRIGGER_EL" }, "をダブルタップしたら"]
+});
+```
+
+`type` はアプリ内で一意な識別子です。他のMODや組み込みブロックと衝突しないよう、
+`"mod_<あなたのMODのid>_..."` のように名前空間を切ってください。重複していたり
+`trigger`/`action` が未対応の種別だと、コンソールに警告を出して登録を拒否します
+（`false` が返ります）。
+
+`parts` の書式は `registerShapeType` 等と同じ Blockly ブロックの部品指定です。
+`{ el: "NAME" }`（図形選択）・`{ num: "NAME", def, min, max, step }`（数値）・
+`{ menu: "NAME", options }`（選択肢）・`{ text: "NAME", def }`（文字入力）・
+文字列そのまま（ラベル）が使えます。
+
+**INTERACTION_TRIGGER_TYPES**: `click` `dblclick` `hover` `press` `inview` `load`
+`key` `scroll` `scrollpage` `scrollany` `timer` `scrollview` `scrollprogress`
+
+**INTERACTION_TOGGLE_MODES**: `once`（1回きり）`hold`（押している/乗っている間）
+`toggle`（ON/OFF切り替え）`scrub`（スクロール位置に連動。`scrollview`/`scrollprogress`専用）
+
+**INTERACTION_ACTION_TYPES**: `scale` `fade` `move` `slide` `rotate` `show` `hide`
+`skew` `flip` `stretch` `blur` `brightness` `grayscale` `saturate` `hue` `glow`
+`pulse` `spin` `float` `shake` `swing` `blink` `bounce` `path`
+
+`toParams(block)` は単一の `{ type: action, params }` を、`toActions(block)` は
+複数のアクション `[{ type, params }, ...]` を組み立てます（どちらか一方が必須）。
+複数のアクションを1ブロックにまとめたい場合（例: 拡大しながらフェード）は
+`toActions` を使ってください。組み込みの「大きくしながら出す」ブロックが実例です。
+
+---
+
 ## registerUI(ui)
 
 任意のパネルエリアにカスタム UI を追加します。

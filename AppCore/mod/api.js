@@ -201,6 +201,28 @@ window.AnimationApp = {
     this.customRenderers[type] = renderer;
   },
 
+  // ── コーディングタブへのブロック追加 ─────────────────────────
+  //   既存のトリガー/アクションの語彙（クリック・スクロール・拡大・移動…）を
+  //   使う新しい見た目・新しい組み合わせのブロックを追加できる。
+  //   ツールボックス表示・CSS/JS生成・警告チェックは既存の仕組みに
+  //   そのまま乗るので、MOD側で追加の登録は不要。
+  //   詳しい仕様は docs/MOD_API_REFERENCE.md を参照。
+  registerTriggerBlock(type, spec) {
+    if (typeof registerMlcTriggerBlock !== 'function') {
+      console.warn('registerTriggerBlock: コーディング機能が読み込まれていません');
+      return false;
+    }
+    return registerMlcTriggerBlock(type, spec);
+  },
+
+  registerActionBlock(type, spec) {
+    if (typeof registerMlcActionBlock !== 'function') {
+      console.warn('registerActionBlock: コーディング機能が読み込まれていません');
+      return false;
+    }
+    return registerMlcActionBlock(type, spec);
+  },
+
   registerBrush(brush) {
     this.customBrushes[brush.id] = brush;
 

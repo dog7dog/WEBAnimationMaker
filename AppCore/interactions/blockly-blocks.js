@@ -517,55 +517,171 @@ function _mlcAppendParts(block, input, parts) {
   });
 }
 
+// トリガーブロック1個ぶんの定義。defineMlcBlocks() の一括登録と、
+// MODが後から1個だけ足す registerMlcTriggerBlock() の両方から呼ばれる。
+function _mlcDefineTriggerBlock(type, spec) {
+  Blockly.Blocks[type] = {
+    init: function () {
+      _mlcAppendParts(this, this.appendDummyInput(), spec.parts);
+      this.setNextStatement(true, null);
+      this.setColour(45);
+      this.setTooltip(spec.tooltip || 'この下につないだ動きが実行されます');
+    }
+  };
+}
+
+// アクションブロック1個ぶんの定義。上と同じ理由で分けてある。
+function _mlcDefineActionBlock(type, spec) {
+  Blockly.Blocks[type] = {
+    init: function () {
+      _mlcAppendParts(this, this.appendDummyInput(), spec.parts);
+      // ずっと動く系にとっての「時間」は1周にかかる秒数なので、そう見せる
+      this.appendDummyInput()
+        .appendField(spec.category === 'loop' ? '1周' : '時間')
+        .appendField(new Blockly.FieldNumber(spec.duration ?? 0.4, 0, 60, 0.05), 'DURATION')
+        .appendField('秒 遅れ')
+        .appendField(new Blockly.FieldNumber(0, 0, 60, 0.05), 'DELAY')
+        .appendField('秒')
+        .appendField(new Blockly.FieldDropdown(MLC_EASING_OPTIONS), 'EASING')
+        .appendField('ずらし')
+        .appendField(new Blockly.FieldNumber(0, 0, 10, 0.05), 'STAGGER')
+        .appendField('秒');
+      if (spec.easing) this.setFieldValue(spec.easing, 'EASING');
+      // ずっと動く系だけ、くり返し方を選べるようにする
+      if (spec.category === 'loop') {
+        this.appendDummyInput()
+          .appendField('くり返し')
+          .appendField(new Blockly.FieldNumber(0, 0, 9999, 1), 'REPEAT')
+          .appendField('回（0でずっと）')
+          .appendField(new Blockly.FieldDropdown([['片道', 'normal'], ['往復', 'alternate']]), 'DIRECTION');
+      }
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(MLC_CATEGORY_COLOUR[spec.category] ?? MLC_CATEGORY_COLOUR.action);
+      this.setTooltip(spec.tooltip || (spec.category === 'loop'
+        ? 'トリガーがクリックなら「動き出す/止まる」の切り替えになります'
+        : '動かす対象は、トリガーとは別の図形も選べます'));
+    }
+  };
+}
+
 function defineMlcBlocks() {
   if (typeof Blockly === 'undefined') return;
   defineMlcFlowBlocks();
   defineMlcValueBlocks();
 
-  Object.entries(MLC_TRIGGER_BLOCKS).forEach(([type, spec]) => {
-    Blockly.Blocks[type] = {
-      init: function () {
-        _mlcAppendParts(this, this.appendDummyInput(), spec.parts);
-        this.setNextStatement(true, null);
-        this.setColour(45);
-        this.setTooltip('この下につないだ動きが実行されます');
-      }
-    };
-  });
+  Object.entries(MLC_TRIGGER_BLOCKS).forEach(([type, spec]) => _mlcDefineTriggerBlock(type, spec));
+  Object.entries(MLC_ACTION_BLOCKS).forEach(([type, spec]) => _mlcDefineActionBlock(type, spec));
+}
 
-  Object.entries(MLC_ACTION_BLOCKS).forEach(([type, spec]) => {
-    Blockly.Blocks[type] = {
-      init: function () {
-        _mlcAppendParts(this, this.appendDummyInput(), spec.parts);
-        // ずっと動く系にとっての「時間」は1周にかかる秒数なので、そう見せる
-        this.appendDummyInput()
-          .appendField(spec.category === 'loop' ? '1周' : '時間')
-          .appendField(new Blockly.FieldNumber(spec.duration ?? 0.4, 0, 60, 0.05), 'DURATION')
-          .appendField('秒 遅れ')
-          .appendField(new Blockly.FieldNumber(0, 0, 60, 0.05), 'DELAY')
-          .appendField('秒')
-          .appendField(new Blockly.FieldDropdown(MLC_EASING_OPTIONS), 'EASING')
-          .appendField('ずらし')
-          .appendField(new Blockly.FieldNumber(0, 0, 10, 0.05), 'STAGGER')
-          .appendField('秒');
-        if (spec.easing) this.setFieldValue(spec.easing, 'EASING');
-        // ずっと動く系だけ、くり返し方を選べるようにする
-        if (spec.category === 'loop') {
-          this.appendDummyInput()
-            .appendField('くり返し')
-            .appendField(new Blockly.FieldNumber(0, 0, 9999, 1), 'REPEAT')
-            .appendField('回（0でずっと）')
-            .appendField(new Blockly.FieldDropdown([['片道', 'normal'], ['往復', 'alternate']]), 'DIRECTION');
-        }
-        this.setPreviousStatement(true, null);
-        this.setNextStatement(true, null);
-        this.setColour(MLC_CATEGORY_COLOUR[spec.category] ?? MLC_CATEGORY_COLOUR.action);
-        this.setTooltip(spec.tooltip || (spec.category === 'loop'
-          ? 'トリガーがクリックなら「動き出す/止まる」の切り替えになります'
-          : '動かす対象は、トリガーとは別の図形も選べます'));
-      }
-    };
-  });
+// ══════════════════════════════════════════════════════════════
+// MODからのブロック追加
+//   MOD は既存のトリガー/アクションの語彙（INTERACTION_TRIGGER_TYPES /
+//   INTERACTION_ACTION_TYPES）に乗った「新しい見た目・新しい組み合わせ」の
+//   ブロックだけを追加できる。中身がCSS変数を1個増やすような全く新しい
+//   アクション種別は対象外（コーディングタブ以外の広い範囲に手が入るため）。
+//
+//   登録したブロックは MLC_TRIGGER_BLOCKS / MLC_ACTION_BLOCKS に間借りする
+//   ので、ツールボックス・CSS/JS生成・警告チェックなど既存の仕組みに
+//   そのまま乗る（MOD側で追加の登録は要らない）。
+//
+//   window.AnimationApp.registerTriggerBlock / registerActionBlock から呼ばれる。
+// ══════════════════════════════════════════════════════════════
+
+// Blocklyが既に読み込み済み（コーディングタブを開いたことがある）なら、
+// その場でブロック定義とツールボックスを更新する。
+// MODは通常アプリ起動時＝Blocklyより先に読み込まれるので、大抵は
+// defineMlcBlocks() の一括登録が後から拾ってくれるが、ZIP MODを
+// コーディングタブを開いた後にインストールした場合はこちらが効く。
+function _mlcRefreshBlockRegistration(type, kind) {
+  if (typeof Blockly === 'undefined') return;
+  if (kind === 'trigger') _mlcDefineTriggerBlock(type, MLC_TRIGGER_BLOCKS[type]);
+  else _mlcDefineActionBlock(type, MLC_ACTION_BLOCKS[type]);
+  if (typeof mlcBlocklyWorkspace !== 'undefined' && mlcBlocklyWorkspace) {
+    try { mlcBlocklyWorkspace.updateToolbox(mlcToolboxJson()); }
+    catch (e) { console.warn('[MOD] ツールボックスの更新に失敗しました', e); }
+  }
+}
+
+// MODのトリガーブロックを追加する。
+//   spec: {
+//     trigger,       必須。INTERACTION_TRIGGER_TYPES のいずれか（click/hover/scroll等）
+//     toggleMode,    必須。INTERACTION_TOGGLE_MODES のいずれか（once/hold/toggle/scrub）
+//     noElement,     省略可。true なら「どの図形で」を持たない（load/timer等と同じ扱い）
+//     parts,         必須。ブロックの見た目（_mlcAppendParts と同じ書式）
+//     tooltip,       省略可。ツールチップ文言
+//     toTriggerParams(block)  省略可。trigger.params を組み立てる関数
+//   }
+function registerMlcTriggerBlock(type, spec) {
+  if (!type || typeof type !== 'string') {
+    console.warn('[MOD] registerTriggerBlock: type（ブロックの識別子）が必要です');
+    return false;
+  }
+  if (MLC_TRIGGER_BLOCKS[type] || MLC_ACTION_BLOCKS[type] || MLC_FLOW_BLOCKS[type] || MLC_VALUE_BLOCKS[type]) {
+    console.warn('[MOD] registerTriggerBlock: 既に使われている type です: ' + type
+      + '（MOD間で重ならない名前にしてください。例: "mod_<あなたのMOD名>_..."）');
+    return false;
+  }
+  if (!spec || !INTERACTION_TRIGGER_TYPES.includes(spec.trigger)) {
+    console.warn('[MOD] registerTriggerBlock: trigger が未対応です: ' + spec?.trigger
+      + '（' + INTERACTION_TRIGGER_TYPES.join(' / ') + ' のいずれかを指定してください）');
+    return false;
+  }
+  if (!INTERACTION_TOGGLE_MODES.includes(spec.toggleMode)) {
+    console.warn('[MOD] registerTriggerBlock: toggleMode が未対応です: ' + spec.toggleMode
+      + '（' + INTERACTION_TOGGLE_MODES.join(' / ') + ' のいずれかを指定してください）');
+    return false;
+  }
+  if (!Array.isArray(spec.parts) || !spec.parts.length) {
+    console.warn('[MOD] registerTriggerBlock: parts（ブロックの見た目）が必要です: ' + type);
+    return false;
+  }
+
+  MLC_TRIGGER_BLOCKS[type] = { ...spec };
+  _mlcRefreshBlockRegistration(type, 'trigger');
+  return true;
+}
+
+// MODのアクションブロックを追加する。
+//   spec: {
+//     action,        必須。INTERACTION_ACTION_TYPES のいずれか（scale/move/fade等）。
+//                    toActions で複数のアクションに展開する場合も、代表として1つ指定する。
+//     category,      省略可。'action'(既定) / 'entrance' / 'exit' / 'loop'
+//     duration,      省略可。時間欄の既定値（秒）
+//     easing,        省略可。動きの緩急欄の既定値
+//     parts,         必須。ブロックの見た目（_mlcAppendParts と同じ書式）
+//     tooltip,       省略可。ツールチップ文言
+//     toParams(block)   省略可。action 用の params を組み立てる関数
+//     toActions(block)  省略可。複数のアクション [{type, params}, ...] を組み立てる関数
+//                        （toParams と toActions のどちらか一方は必須）
+//   }
+function registerMlcActionBlock(type, spec) {
+  if (!type || typeof type !== 'string') {
+    console.warn('[MOD] registerActionBlock: type（ブロックの識別子）が必要です');
+    return false;
+  }
+  if (MLC_TRIGGER_BLOCKS[type] || MLC_ACTION_BLOCKS[type] || MLC_FLOW_BLOCKS[type] || MLC_VALUE_BLOCKS[type]) {
+    console.warn('[MOD] registerActionBlock: 既に使われている type です: ' + type
+      + '（MOD間で重ならない名前にしてください。例: "mod_<あなたのMOD名>_..."）');
+    return false;
+  }
+  if (!spec || !INTERACTION_ACTION_TYPES.includes(spec.action)) {
+    console.warn('[MOD] registerActionBlock: action が未対応です: ' + spec?.action
+      + '（' + INTERACTION_ACTION_TYPES.join(' / ') + ' のいずれかを指定してください）');
+    return false;
+  }
+  if (!Array.isArray(spec.parts) || !spec.parts.length) {
+    console.warn('[MOD] registerActionBlock: parts（ブロックの見た目）が必要です: ' + type);
+    return false;
+  }
+  if (typeof spec.toParams !== 'function' && typeof spec.toActions !== 'function') {
+    console.warn('[MOD] registerActionBlock: toParams か toActions のどちらかが必要です: ' + type);
+    return false;
+  }
+
+  MLC_ACTION_BLOCKS[type] = { ...spec };
+  _mlcRefreshBlockRegistration(type, 'action');
+  return true;
 }
 
 // 値ブロック。数を返すだけなので、置ける場所はBlockly側が決めてくれる。

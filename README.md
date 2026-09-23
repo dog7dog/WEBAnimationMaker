@@ -297,6 +297,10 @@ MODはZIPファイルをローカルからインストールして使います
 - addObject()
 - registerRenderer()
 - registerMod()
+- **registerTriggerBlock() / registerActionBlock()** — コーディングタブに独自の
+  トリガー・アクションブロックを追加します。既存の種別（クリック・スクロール・
+  拡大・移動…）を組み合わせた新しいブロックなので、ツールボックス表示や
+  CSS/JS生成にそのまま乗ります。
 - libraries.load() / libraries.declare() / libraries.get() / libraries.has() / libraries.list()（外部ライブラリの登録・利用）
 
 ---
