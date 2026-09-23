@@ -191,7 +191,12 @@ function _mlcWrapTrigger(spec, top, body) {
       + '})();\n';
   }
 
-  if (spec.noElement && spec.trigger === 'scrollany') {
+  // スクロール連動（scrollview / scrollprogress）を、繰り返しや分岐と
+  // 組み合わせた場合。なめらかに進むのはCSSの仕事で、命令的なコードには
+  // 「途中まで進める」概念がないので、スクロールのたびに実行する形にする。
+  // （コーディングタブでもその旨を知らせる）
+  if (spec.trigger === 'scrollview' || spec.trigger === 'scrollprogress'
+      || (spec.noElement && spec.trigger === 'scrollany')) {
     // スクロールするたびに中身を見直す。読み込み直後にも1回見る。
     return '(function () {\n'
       + '  async function run() {\n'
@@ -256,7 +261,20 @@ function _mlcWrapTrigger(spec, top, body) {
       + _mlcIndent(body, '  ') + '}, ' + Math.round(sec * 1000) + ');\n';
   }
 
-  const sel = interactionTargetSelector(top.getFieldValue('TRIGGER_EL'));
+  const triggerEl = top.getFieldValue('TRIGGER_EL');
+  if (!triggerEl) {
+    // ここに来るのは、図形を持たないトリガーに受け皿を書き忘れたとき。
+    // クリック待ちに落ちると、当たる要素が無く黙って動かなくなるので、
+    // 読み込み後に1回だけ実行しておく（少なくとも何かは起きる）。
+    return '(function () {\n'
+      + '  async function run() {\n'
+      + _mlcIndent(body, '    ')
+      + '  }\n'
+      + '  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);\n'
+      + '  else run();\n'
+      + '})();\n';
+  }
+  const sel = interactionTargetSelector(triggerEl);
   const selJson = JSON.stringify(sel);
 
   if (spec.trigger === 'inview') {

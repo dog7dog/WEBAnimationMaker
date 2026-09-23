@@ -665,6 +665,29 @@ function findScrollValueMisuse(ws) {
   return warnings;
 }
 
+// スクロール連動のトリガーに、繰り返しや分岐をつないでいる組み方を見つける。
+// なめらかに進むのはCSSの仕事で、繰り返し・分岐が入ると命令的なコードになり、
+// 「スクロールするたびに実行」に変わる。見た目が変わらず戸惑いやすいので知らせる。
+function findScrubWithControlFlow(ws) {
+  const workspace = ws || (typeof mlcBlocklyWorkspace !== 'undefined' ? mlcBlocklyWorkspace : null);
+  if (!workspace) return [];
+
+  const warnings = [];
+  workspace.getTopBlocks(true).forEach(top => {
+    const spec = MLC_TRIGGER_BLOCKS[top.type];
+    if (!spec || spec.toggleMode !== 'scrub') return;
+    if (!mlcStackIsImperative(top)) return;
+    warnings.push({
+      kind: 'scrub-imperative',
+      message: '「' + top.toString().split('\n')[0] + '」に繰り返しや分岐をつないでいます。'
+        + 'この場合はスクロール位置に合わせて少しずつ進むのではなく、'
+        + '「スクロールするたびに実行」になります。'
+        + 'なめらかに進めたいときは、動きのブロックを直接つないでください。'
+    });
+  });
+  return warnings;
+}
+
 // ワークスペース → InteractionRule[]
 //   ルールidはブロックidから決定的に作る。こうすると編集のたびに作り直しても
 //   同じブロックには同じCSSクラス名が割り当てられ、再生成が冪等になる。
