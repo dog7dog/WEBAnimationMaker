@@ -17,6 +17,7 @@ WEBAnimationMaker は `window.AnimationApp` を通じて外部 MOD からキャ�
 | **ファイルメニュー** | 「ファイル」メニューに独自の書き出し・読み込み項目を追加 |
 | **Three.js 統合** | WebGL レンダラーを 2D レイヤーと同じ管理下に置く（レンダラー自体はMOD側で用意） |
 | **シーン読み取り** | shapes / layers / インタラクション情報を取得して外部ツールと連携 |
+| **外部ライブラリ** | `mod.json` の宣言、または `api.libraries` 経由でCDN上のライブラリを読み込む |
 
 ---
 
@@ -48,6 +49,22 @@ my_mod.zip
 MOD一覧に表示されるだけの飾りで、権限制御には使われていません。
 `enabled` フィールドは古いサーバー配布時代の名残で、現在は読まれません
 （インストールしたMODは常に有効です。無効化したい場合はアンインストールします）。
+
+`libraries` フィールド（省略可）で、外部ライブラリの宣言もできます。
+
+```json
+{
+  "libraries": [
+    { "id": "three", "name": "Three.js", "type": "script",
+      "url": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+      "globalName": "THREE" }
+  ]
+}
+```
+
+宣言のみで即読み込みはされません。`main.js` 側で `api.libraries.get("three")`
+（または `api.libraries.load(...)`）を呼んだ時点で初めて読み込まれます。
+詳細は [MOD_API_REFERENCE.md](./MOD_API_REFERENCE.md#libraries--外部ライブラリの読み込み) を参照してください。
 
 ### main.js の最小構成
 

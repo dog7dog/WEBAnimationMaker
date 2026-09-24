@@ -49,13 +49,25 @@ api.registerBrush({
   id: "my_brush",
   name: "マイブラシ",
   icon: "🖌",
-  onStart(ctx, point, shape) { ... },
-  onMove(ctx, point, shape)  { ... },
-  onEnd(ctx, point, shape)   { ... }
+  // 必須: ストロークの全ポイントを毎フレーム受け取って描画する
+  draw(ctx, points, opts) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || "#fff";
+    ctx.lineWidth = opts.sw || 4;
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+    ctx.restore();
+  },
+  // 任意: レイヤーパネルのサムネイル用SVGを返す
+  toSVG(shape) { ... }
 });
 ```
 
-`point` は `{ x, y, pressure }` です。
+`draw(ctx, points, opts)` は、ストローク中は毎回**全ポイント配列**（`{ x, y }` の配列）を受け取って呼ばれます
+（`onStart`/`onMove`/`onEnd` のような分割コールバックはありません）。`opts` は描画中
+（ストロークプレビュー時）は `{ color, sw, opa, preview: true }`、確定後の再描画時は
+保存された shape オブジェクトそのものが渡されます。
 
 ---
 
@@ -98,18 +110,19 @@ api.registerShapeType("my_shape", {
     s.h = Math.max(4, nh);
   },
 
-  // SVG 書き出し用
+  // SVG 書き出し用（レイヤーパネルのサムネイル表示に使われる）
   toSVG(s) {
     return `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"
               fill="none" stroke="${s.color}" stroke-width="${s.sw || 2}"/>`;
-  },
-
-  // HTML プレビュー用のコード文字列
-  previewDrawCode: `
-    ctx.strokeRect(s.x, s.y, s.w, s.h);
-  `
+  }
 });
 ```
+
+> `registerShapeType` で追加した図形は、デザインタブの自前キャンバス上でのみ
+> `draw()` によって描画されます。HTML書き出しやキャンバスタブのDOMプレビューは
+> 参照しないため、そのままでは書き出したページ上に表示されません。書き出した
+> ページでも見た目を再現したい場合は、`registerActionBlock` 等でCSS/JSとして
+> 別途表現するか、書き出し後のHTMLに手を加える必要があります。
 
 ---
 
@@ -166,9 +179,9 @@ api.setSelectedPatch({ color: "#ff0000", sw: 4 });
 
 ---
 
-## requestRender() / redraw()
+## redraw()
 
-キャンバスを再描画します。`api.redraw()` で呼べます。
+キャンバスを再描画します。
 
 ```js
 api.redraw();
@@ -382,3 +395,56 @@ api.getObjectsByLayer("layer-1");
 // 特定エンジンの全オブジェクト
 api.getObjectsByEngine("threejs");
 ```
+
+---
+
+## getAsset(modId, path)
+
+ZIP形式でインストールしたMODに同梱したアセット（画像など）の Blob URL を取得します。
+
+```js
+const url = api.getAsset("my_mod", "assets/icon.png");
+img.src = url;
+```
+
+MODの実行コード内（`main.js`）では、`__assets["assets/icon.png"]` で直接参照する方が簡単です。
+`getAsset` は他のMODのアセットを参照したい場合や、`modId` を動的に扱いたい場合に使います。
+
+---
+
+## libraries — 外部ライブラリの読み込み
+
+MODが Three.js や物理演算エンジンなど、外部ライブラリをCDN等から読み込むための唯一の窓口です。
+テキストエディタやAI生成コードから外部URLへ直接 `<script>` を差し込むことはできない仕組みになっており、
+読み込みは必ずこの `api.libraries` を経由します。
+
+```js
+// 宣言 + 即読み込み（Promiseで本体が返る）
+const THREE = await api.libraries.load({
+  id: "three",              // 省略時は name を使う
+  name: "Three.js",
+  type: "script",           // "script"(既定・UMDグローバル) | "module"(ES Module)
+  url: "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+  globalName: "THREE"       // type: "script" のとき、読み込み後に window から取り出す変数名
+});
+
+// 「使えるようにだけしておく」宣言のみ（即読み込みしない）
+api.libraries.declare("cannon", {
+  name: "Cannon-es",
+  type: "module",
+  url: "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+});
+
+// 登録済みか確認してから取得（初回のみ読み込み、以降はキャッシュを返す）
+if (api.libraries.has("cannon")) {
+  const CANNON = await api.libraries.get("cannon");
+}
+
+// 登録済み一覧
+api.libraries.list();
+// → [{ id, name, description, source, globalName }, ...]
+```
+
+`load` が渡す `opts.load` にカスタム関数を指定すると、UMD以外の特殊な読み込み処理
+（グローバル変数名が動的に決まる場合など）にも対応できます。`mod.json` の
+`libraries` フィールドで宣言した内容も、内部的にはこの `declare()` と同じ扱いになります。

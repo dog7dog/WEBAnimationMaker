@@ -48,6 +48,8 @@
         <a class="sub" href="#api-registerThreeRenderer">registerThreeRenderer</a>
         <a class="sub" href="#api-util">ユーティリティ</a>
         <a class="sub" href="#api-getObjectsBy">getObjectsBy 系</a>
+        <a class="sub" href="#api-getAsset">getAsset</a>
+        <a class="sub" href="#api-libraries">libraries</a>
       </div>
       <div class="doc-toc-group">
         <div class="doc-toc-title">実践</div>
@@ -195,6 +197,8 @@
           <a href="#api-registerThreeRenderer">registerThreeRenderer</a>
           <a href="#api-util">toast / setStatus</a>
           <a href="#api-getObjectsBy">getObjectsBy*</a>
+          <a href="#api-getAsset">getAsset</a>
+          <a href="#api-libraries">libraries</a>
         </div>
       </section>
 
@@ -230,16 +234,25 @@
 
       <section id="api-registerBrush">
         <h3>registerBrush(brush)</h3>
-        <p>カスタムブラシを登録します。<code>onStart</code> / <code>onMove</code> / <code>onEnd</code> の3つのコールバックで、ストロークの開始・移動・終了それぞれのCanvas描画を自分でコントロールできます。</p>
+        <p>カスタムブラシを登録します。<code>draw</code> コールバック1つで、ストロークの描画を自分でコントロールできます。</p>
         <pre><code>api.registerBrush({
   id: "my_brush",
   name: "マイブラシ",
   icon: "🖌",
-  onStart(ctx, point, shape) { ... },
-  onMove(ctx, point, shape)  { ... },
-  onEnd(ctx, point, shape)   { ... }
+  // 必須: ストロークの全ポイントを毎フレーム受け取って描画する
+  draw(ctx, points, opts) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || "#fff";
+    ctx.lineWidth = opts.sw || 4;
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+    ctx.restore();
+  },
+  // 任意: レイヤーパネルのサムネイル用SVGを返す
+  toSVG(shape) { ... }
 });</code></pre>
-        <p><code>point</code> は <code>{ x, y, pressure }</code> の形で渡されます。<code>pressure</code> は筆圧対応デバイスでの筆圧値（0〜1、非対応デバイスでは1）です。</p>
+        <p><code>draw(ctx, points, opts)</code> は、ストローク中は毎回<strong>全ポイント配列</strong>（<code>{ x, y }</code> の配列）を受け取って呼ばれます。開始・移動・終了で分かれたコールバックはありません。<code>opts</code> は、ストロークの描画中（プレビュー中）は <code>{ color, sw, opa, preview: true }</code>、ストローク確定後の再描画時は保存された shape オブジェクトそのものが渡されます。</p>
       </section>
 
       <section id="api-registerShapeType">
@@ -283,12 +296,7 @@
   toSVG(s) {
     return `&lt;rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"
               fill="none" stroke="${s.color}" stroke-width="${s.sw || 2}"/&gt;`;
-  },
-
-  // HTML プレビュー用のコード文字列
-  previewDrawCode: `
-    ctx.strokeRect(s.x, s.y, s.w, s.h);
-  `
+  }
 });</code></pre>
         <table class="api-table">
           <thead><tr><th>コールバック</th><th>必須</th><th>役割</th></tr></thead>
@@ -298,10 +306,10 @@
             <tr><td><code>getCenter(s)</code></td><td>任意</td><td>回転の中心などに使う中心座標を返す</td></tr>
             <tr><td><code>move(s, dx, dy)</code></td><td>任意</td><td>ドラッグ移動時に図形の座標を更新する</td></tr>
             <tr><td><code>resize(s, handle, ...)</code></td><td>任意</td><td>選択枠のハンドルドラッグでサイズ変更する</td></tr>
-            <tr><td><code>toSVG(s)</code></td><td>任意</td><td>SVG書き出し機能で使われるマークアップ文字列を返す</td></tr>
-            <tr><td><code>previewDrawCode</code></td><td>任意</td><td>HTML/JS書き出し時に埋め込まれる描画コードの文字列</td></tr>
+            <tr><td><code>toSVG(s)</code></td><td>任意</td><td>レイヤーパネルのサムネイル表示で使われるマークアップ文字列を返す</td></tr>
           </tbody>
         </table>
+        <div class="note"><code>registerShapeType</code> で追加した図形は、デザインタブの自前キャンバス上でのみ <code>draw()</code> によって描画されます。HTML書き出しやキャンバスタブのDOMプレビューはこの描画関数を参照しないため、そのままでは書き出したページ上に表示されません。書き出したページでも見た目を再現したい場合は、<code>registerActionBlock</code> 等でCSS/JSとして別途表現するか、書き出し後のHTMLに手を加える必要があります。</div>
       </section>
 
       <section id="api-addShape">
@@ -351,8 +359,8 @@ if (s) console.log(s.type, s.x, s.y);</code></pre>
       </section>
 
       <section id="api-redraw">
-        <h3>requestRender() / redraw()</h3>
-        <p>キャンバスの再描画を要求します。図形データを直接書き換えた後など、画面に即座に反映させたいときに <code>api.redraw()</code> を呼びます。</p>
+        <h3>redraw()</h3>
+        <p>キャンバスの再描画を要求します。図形データを直接書き換えた後など、画面に即座に反映させたいときに呼びます。</p>
         <pre><code>api.redraw();</code></pre>
       </section>
 
@@ -509,6 +517,45 @@ api.getObjectsByLayer("layer-1");
 
 // 特定エンジンの全オブジェクト
 api.getObjectsByEngine("threejs");</code></pre>
+      </section>
+
+      <section id="api-getAsset">
+        <h3>getAsset(modId, path)</h3>
+        <p>ZIP形式でインストールしたMODに同梱したアセット（画像など）の Blob URL を取得します。</p>
+        <pre><code>const url = api.getAsset("my_mod", "assets/icon.png");
+img.src = url;</code></pre>
+        <p>MODの実行コード内（<code>main.js</code>）では、<code>__assets["assets/icon.png"]</code> で直接参照する方が簡単です。<code>getAsset</code> は他のMODのアセットを参照したい場合や、<code>modId</code> を動的に扱いたい場合に使います。</p>
+      </section>
+
+      <section id="api-libraries">
+        <h4 class="api-cat">外部ライブラリ</h4>
+        <h3>libraries.load / declare / get / has / list</h3>
+        <p>MODがThree.jsや物理演算エンジンなど、外部ライブラリをCDN等から読み込むための唯一の窓口です。テキストエディタやAI生成コードから外部URLへ直接<code>&lt;script&gt;</code>を差し込むことはできない仕組みになっており、読み込みは必ずこの<code>api.libraries</code>を経由します。</p>
+        <pre><code>// 宣言 + 即読み込み（Promiseで本体が返る）
+const THREE = await api.libraries.load({
+  id: "three",              // 省略時は name を使う
+  name: "Three.js",
+  type: "script",           // "script"(既定・UMDグローバル) | "module"(ES Module)
+  url: "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+  globalName: "THREE"       // type: "script" のとき、読み込み後に window から取り出す変数名
+});
+
+// 「使えるようにだけしておく」宣言のみ（即読み込みしない）
+api.libraries.declare("cannon", {
+  name: "Cannon-es",
+  type: "module",
+  url: "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+});
+
+// 登録済みか確認してから取得（初回のみ読み込み、以降はキャッシュを返す）
+if (api.libraries.has("cannon")) {
+  const CANNON = await api.libraries.get("cannon");
+}
+
+// 登録済み一覧
+api.libraries.list();
+// → [{ id, name, description, source, globalName }, ...]</code></pre>
+        <p><code>load</code>に渡す<code>opts.load</code>にカスタム関数を指定すると、UMD以外の特殊な読み込み処理（グローバル変数名が動的に決まる場合など）にも対応できます。<code>mod.json</code>の<code>libraries</code>フィールドで宣言した内容も、内部的にはこの<code>declare()</code>と同じ扱いになります。</p>
       </section>
 
       <section id="patterns">
