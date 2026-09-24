@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Magic PaintのMOD・JavaScript API リファレンスとファイル構成ガイド">
-  <title>MOD API - Magic Paint Docs</title>
+  <meta name="description" content="WEBAnimationMakerのMOD・JavaScript API リファレンスとファイル構成ガイド">
+  <title>MOD API - WEBAnimationMaker Docs</title>
   <link rel="stylesheet" href="docs.css">
 </head>
 <body>
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="overview.html">Magic Paint Docs</a>
+      <a class="brand" href="overview.html">WEBAnimationMaker Docs</a>
       <nav class="tabs" aria-label="ドキュメント">
         <a href="overview.html">概要</a>
         <a href="tutorial.html">チュートリアル</a>
@@ -59,43 +59,41 @@
 
     <main class="doc-content">
       <h1 class="page-title">MOD API</h1>
-      <p class="lead"><code>window.AnimationApp</code> が Magic Paint の公開APIです。MOD の <code>main.js</code> 内で <code>const api = window.AnimationApp;</code> として参照し、図形・ツール・UIなどを自由に追加できます。このページではMODのファイル構成から全APIリファレンスまでをまとめて説明します。</p>
+      <p class="lead"><code>window.AnimationApp</code> が WEBAnimationMaker の公開APIです。MOD の <code>main.js</code> 内で <code>const api = window.AnimationApp;</code> として参照し、図形・ツール・コーディングブロック・UIなどを自由に追加できます。このページではMODのファイル構成から全APIリファレンスまでをまとめて説明します。</p>
 
       <section id="mod-toha">
         <h2>MODとは</h2>
-        <p>MOD（モッド）は、Magic Paint 本体を書き換えずに機能を追加できる小さな拡張パッケージです。<code>mods/</code> フォルダに置いた JavaScript / JSON / CSS が起動時に読み込まれ、<code>window.AnimationApp</code> という共通APIを通じてエディタと連携します。</p>
-        <p>ゲームのMODと同じ考え方で、有効/無効の切り替えや複数MODの併用ができ、保存したプロジェクト（<code>.mlc</code>）にも図形データとして残ります。</p>
+        <p>MOD（モッド）は、WEBAnimationMaker 本体を書き換えずに機能を追加できる小さな拡張パッケージです。<code>mod.json</code>（メタデータ）と <code>main.js</code>（JavaScript）などをZIPにまとめてインストールすると、<code>window.AnimationApp</code> という共通APIを通じてエディタと連携します。</p>
+        <p>ZIPはブラウザの IndexedDB に保存され、次回以降の起動でも自動で読み込まれます。保存したプロジェクト（<code>.mlc</code>）に、MODが追加した図形タイプのデータも残ります。</p>
         <div class="feature-list">
           <article class="feature-item"><h3>カスタム図形</h3><p>独自の描画ロジックを持つ図形タイプを追加できます。</p></article>
           <article class="feature-item"><h3>カスタムツール</h3><p>右パネルにツールボタンを追加し、マウス操作を乗っ取れます。</p></article>
           <article class="feature-item"><h3>カスタムブラシ</h3><p>ストローク描画を完全にコントロールするブラシを追加できます。</p></article>
+          <article class="feature-item"><h3>コーディングブロック</h3><p>コーディングタブ（Blockly）に独自のトリガー・アクションブロックを追加できます。</p></article>
           <article class="feature-item"><h3>カスタムUI</h3><p>top / right / bottom / left / editor-top エリアにHTMLパネルを追加できます。</p></article>
-          <article class="feature-item"><h3>ファイルメニュー拡張</h3><p>「File」メニューに独自の書き出し・読み込み項目を追加できます。</p></article>
-          <article class="feature-item"><h3>Three.js統合</h3><p>WebGLレンダラーを2Dレイヤーと同じ管理下（表示/ロック/順序）に置けます。</p></article>
+          <article class="feature-item"><h3>ファイルメニュー拡張</h3><p>「ファイル」メニューに独自の書き出し・読み込み項目を追加できます。</p></article>
+          <article class="feature-item"><h3>Three.js統合</h3><p>WebGLレンダラー（MOD側で用意）を2Dレイヤーと同じ管理下（表示/ロック/順序）に置けます。</p></article>
         </div>
       </section>
 
       <section id="file-structure">
         <h2>ファイル構成</h2>
-        <p>MODは <code>mods/</code> 以下に、MODのIDと同じ名前のフォルダとして配置します。最小構成は次の3ファイルです。</p>
+        <p>MODは <strong>ZIPファイル1つ</strong>として配布・インストールします。最小構成は次の3ファイルです。</p>
 
         <div class="file-tree">
-          <div>mods/</div>
-          <div>└─ <span class="dir">my_mod/</span> <span class="comment">← MODのIDと同じ名前にする</span></div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;├─ mod.json <span class="comment">← 必須。メタデータと読み込むファイルのリスト</span></div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;├─ main.js <span class="comment">← 必須。エントリポイント</span></div>
-          <div>&nbsp;&nbsp;&nbsp;&nbsp;└─ style.css <span class="comment">← オプション</span></div>
+          <div><span class="dir">my_mod.zip</span></div>
+          <div>├─ mod.json <span class="comment">← 必須。メタデータと読み込むファイルのリスト（manifest.json でも可）</span></div>
+          <div>├─ main.js <span class="comment">← 必須。エントリポイント</span></div>
+          <div>└─ style.css <span class="comment">← オプション</span></div>
         </div>
-        <div class="note">MOD IDに使えるのはアルファベット・数字・アンダースコアのみです。フォルダ名・<code>mod.json</code> の <code>id</code>・<code>registerMod()</code> に渡す <code>id</code> はすべて一致させてください。</div>
+        <div class="note">MOD IDに使えるのはアルファベット・数字・アンダースコアのみです。<code>mod.json</code> の <code>id</code> と <code>registerMod()</code> に渡す <code>id</code> は一致させてください。</div>
 
         <h3 id="mod-json">mod.json</h3>
-        <p>MODのメタデータと、読み込むファイルの一覧を書くマニフェストです。Magic Paint はこのファイルを読んでMOD一覧に表示します。</p>
+        <p>MODのメタデータと、読み込むファイルの一覧を書くマニフェストです。WEBAnimationMaker はインストール時にこのファイルを読んでMOD一覧に表示します。</p>
         <pre><code>{
   "id": "my_mod",
   "name": "My MOD",
   "version": "1.0.0",
-  "level": 1,
-  "enabled": true,
   "description": "説明",
   "scripts": ["main.js"],
   "styles": []
@@ -103,13 +101,13 @@
         <table class="api-table">
           <thead><tr><th>フィールド</th><th>型</th><th>説明</th></tr></thead>
           <tbody>
-            <tr><td><code>id</code></td><td>string</td><td>システム内でユニークな識別子。<code>mods/</code> 内のフォルダ名と一致させる</td></tr>
-            <tr><td><code>name</code></td><td>string</td><td>Modsパネルや設定画面に表示される名前</td></tr>
+            <tr><td><code>id</code></td><td>string</td><td>システム内でユニークな識別子。<code>registerMod()</code> に渡す <code>id</code> と一致させる</td></tr>
+            <tr><td><code>name</code></td><td>string</td><td>MOD一覧に表示される名前</td></tr>
             <tr><td><code>version</code></td><td>string</td><td>セマンティックバージョン（例: <code>1.0.0</code>）</td></tr>
-            <tr><td><code>level</code></td><td>number</td><td>権限レベル。将来の権限管理用フィールドで、現在は <code>1</code> 固定</td></tr>
-            <tr><td><code>enabled</code></td><td>boolean</td><td><code>false</code> にするとサーバーがこのMODを読み込まない</td></tr>
-            <tr><td><code>description</code></td><td>string</td><td>Modsパネルに表示される説明文</td></tr>
-            <tr><td><code>scripts</code></td><td>string[]</td><td>読み込むJSファイルのリスト（配列の順番どおりに実行される）</td></tr>
+            <tr><td><code>level</code></td><td>number</td><td>MOD一覧に表示されるだけの値。権限制御には使われていない</td></tr>
+            <tr><td><code>enabled</code></td><td>boolean</td><td>受け付けはするが現在は読まれない（古いサーバー配布時代の名残）</td></tr>
+            <tr><td><code>description</code></td><td>string</td><td>MOD一覧に表示される説明文</td></tr>
+            <tr><td><code>scripts</code></td><td>string[]</td><td>読み込むJSファイルのリスト（配列の順番どおりに実行される。省略時は <code>main.js</code>）</td></tr>
             <tr><td><code>styles</code></td><td>string[]</td><td>読み込むCSSファイルのリスト（省略可）</td></tr>
           </tbody>
         </table>
@@ -118,7 +116,7 @@
         <p>MODの実処理を書くエントリポイントです。即時関数で囲んでグローバル変数の汚染を防ぎ、まず <code>api.registerMod()</code> を呼んでシステムに存在を知らせるのが基本形です。</p>
         <pre><code>(function () {
   const api = window.AnimationApp;
-  if (!api) return;          // Magic Paint 以外の環境対策
+  if (!api) return;          // WEBAnimationMaker以外の環境対策
 
   api.registerMod({
     id: "my_mod",
@@ -127,30 +125,31 @@
     description: "説明"
   });
 
-  // ここから機能を追加する（registerShapeType / registerTool など）
+  // ここから機能を追加する（registerShapeType / registerTool / registerActionBlock など）
 })();</code></pre>
-        <div class="note"><code>if (!api) return;</code> を入れておくと、Magic Paint 以外の環境で誤って読み込まれてもエラーになりません。</div>
+        <div class="note"><code>if (!api) return;</code> を入れておくと、WEBAnimationMaker以外の環境で誤って読み込まれてもエラーになりません。</div>
 
         <h3 id="loading">読み込みの仕組み</h3>
         <ol class="steps-list">
-          <li>Magic Paint 起動時に <code>/api/mods</code> からMOD一覧を取得します。</li>
-          <li><code>enabled: true</code> のMODについて、<code>scripts</code> に書かれたJSファイルを <code>&lt;script&gt;</code> タグとして動的に読み込みます。</li>
-          <li>各 <code>main.js</code> が実行され、内部で <code>api.registerMod()</code> が呼ばれた時点でそのMODがシステムに登録されます。</li>
+          <li><code>mod.json</code>（または <code>manifest.json</code>）と <code>main.js</code> などをZIPにまとめる。</li>
+          <li>ツールバーの「MOD」→「MODをインストール」からZIPを選び、セキュリティ確認ダイアログで「インストール」を押す。</li>
+          <li>ZIPの中身がブラウザの IndexedDB に保存され、<code>scripts</code> に書かれたJSファイルが実行される。内部で <code>api.registerMod()</code> が呼ばれた時点でそのMODがシステムに登録される。</li>
+          <li>次回以降の起動時も、IndexedDBに保存されたMODが自動で読み込まれる。</li>
         </ol>
-        <p>MODの有効/無効は、上部ツールバーの「Mods」ボタンから切り替えられます。無効化してもファイルは削除されません。</p>
+        <p>インストール済みMODは「MOD一覧」からアンインストールできます。MODが追加したブロック・図形・UIなどを個別に取り消す仕組みは無いため、アンインストール後は確認をはさんでページが自動的に再読み込みされます。</p>
 
         <h3 id="save-data">保存データへの影響</h3>
         <p><code>addShape()</code> で追加した図形は、通常の図形と同じように <code>.mlc</code> プロジェクトファイルへ保存されます。</p>
-        <div class="note">再読み込み時にそのMODが無効化されていると、図形タイプが未登録のまま読み込まれます（<strong>データ自体は失われません</strong>）。保存データにはMODの識別子が記録されるため、必要なMODが不足している場合はMagic Paintが警告を表示します。</div>
+        <div class="note">再読み込み時にそのMODがインストールされていないと、図形タイプが未登録のまま読み込まれます（<strong>データ自体は失われません</strong>）。保存データにはMODの識別子が記録されるため、必要なMODが不足している場合は警告が表示されます。</div>
       </section>
 
       <section id="quickstart">
         <h2>クイックスタート</h2>
-        <p>実際に手を動かして最初のMODを作る手順です。完成例は <code>mods/sample_shape/</code> を参照してください。</p>
+        <p>実際に手を動かして最初のMODを作る手順です。完成例は下記「main.js」のコード例をそのまま使えます。</p>
 
         <div class="step">
           <div class="step-number">1</div>
-          <div><h3>フォルダを作る</h3><p><code>mods/my_mod/</code> のように、MOD IDと同じ名前のフォルダを作成し、中に <code>mod.json</code> と <code>main.js</code> を用意します。</p></div>
+          <div><h3>フォルダを作る</h3><p><code>my_mod/</code> のようなフォルダを作成し、中に <code>mod.json</code> と <code>main.js</code> を用意します。</p></div>
         </div>
         <div class="step">
           <div class="step-number">2</div>
@@ -170,9 +169,9 @@
         </div>
         <div class="step">
           <div class="step-number">6</div>
-          <div><h3>Magic Paintで有効化する</h3><p>Magic Paintを起動し、上部バーの「Mods」ボタンをクリック。作成したMODの名前が一覧に出ていれば認識されています。有効化して「適用」をクリックすると右パネルにボタンが追加されます。</p></div>
+          <div><h3>ZIPにまとめてインストールする</h3><p><code>mod.json</code> と <code>main.js</code> をZIPにまとめ、WEBAnimationMakerのツールバーの「MOD」→「MODをインストール」から選びます。セキュリティ確認ダイアログで「インストール」を押すと、MOD一覧に名前が出て右パネルにボタンが追加されます。</p></div>
         </div>
-        <div class="note">認識されない場合は、ブラウザで <code>/api/mods</code> を開いてレスポンスを確認してください。<code>mod.json</code> のJSONが壊れているとサーバーが無視することがあります。</div>
+        <div class="note">認識されない場合は、ブラウザの開発者ツールのコンソールを確認してください。<code>mod.json</code> のJSONが壊れている、または <code>id</code>/<code>scripts</code> が抜けていると、インストール時にエラーメッセージが表示されます。</div>
       </section>
 
       <section id="api-reference-intro">
@@ -201,14 +200,14 @@
 
       <section id="api-basic">
         <h4 class="api-cat">基本</h4>
-        <p>全てのAPI呼び出しの起点になる参照です。<code>main.js</code> の一番上で取得してください。Magic Paint 以外の環境（例: テスト用の素のブラウザ）では <code>undefined</code> になるため、<code>if (!api) return;</code> で防御するのが安全です。</p>
+        <p>全てのAPI呼び出しの起点になる参照です。<code>main.js</code> の一番上で取得してください。WEBAnimationMaker以外の環境（例: テスト用の素のブラウザ）では <code>undefined</code> になるため、<code>if (!api) return;</code> で防御するのが安全です。</p>
         <pre><code>const api = window.AnimationApp;</code></pre>
       </section>
 
       <section id="api-registerMod">
         <h4 class="api-cat">登録系</h4>
         <h3>registerMod(mod)</h3>
-        <p>MODをシステムに登録します。<strong>main.jsの先頭で必ず呼んでください。</strong>これを呼ぶまでMagic Paintはこのスクリプトを「MOD」として認識しません。<code>id</code>・<code>name</code>・<code>version</code>・<code>description</code> は<code>mod.json</code>の内容と一致させておくと管理が楽になります。</p>
+        <p>MODをシステムに登録します。<strong>main.jsの先頭で必ず呼んでください。</strong>これを呼ぶまでWEBAnimationMakerはこのスクリプトを「MOD」として認識しません。<code>id</code>・<code>name</code>・<code>version</code>・<code>description</code> は<code>mod.json</code>の内容と一致させておくと管理が楽になります。</p>
         <pre><code>api.registerMod({
   id: "my_mod",          // 必須。ユニークな識別子
   name: "My MOD",        // 表示名
@@ -335,7 +334,7 @@
             <tr><td><code>layerId</code></td><td>string</td><td>配置レイヤー (省略時はアクティブレイヤー)</td></tr>
           </tbody>
         </table>
-        <div class="note"><code>addShape</code> で追加した図形は自動的にキーフレームアニメーションの対象になります。<code>draw(ctx, s)</code> に渡される <code>s.x</code> / <code>s.y</code> などはすでに補間済みの値なので、アニメーション対応のために特別なコードを書く必要はありません。</div>
+        <div class="note"><code>addShape</code> で追加した図形は、通常の図形と同じようにコーディングタブの図形選択欄に並びます。動きを付けるのに特別な対応は不要です。</div>
       </section>
 
       <section id="api-getSelected">
@@ -409,7 +408,7 @@ api.registerTriggerBlock("mod_when_double_tap", {
 
       <section id="api-registerFileMenuItem">
         <h3>registerFileMenuItem(item)</h3>
-        <p>上部の「File」メニューに独自の項目を追加します。書き出し・読み込みなど、ファイル操作系の機能をMODから提供したいときに使います。</p>
+        <p>左上の「ファイル」メニューに独自の項目を追加します。書き出し・読み込みなど、ファイル操作系の機能をMODから提供したいときに使います。</p>
         <pre><code>api.registerFileMenuItem({
   id: "my_export",
   label: "カスタム書き出し",
@@ -499,7 +498,7 @@ const bounds = api.getBounds(shape);    // → { x, y, w, h }
 const center = api.getCenter(shape);    // → { x, y }
 
 const snapshot = api.getSceneSnapshot();
-// → { width, height, bg, totalDur, looping, fps, shapes[] }</code></pre>
+// → { width, height, bg, fps, shapes[] }</code></pre>
       </section>
 
       <section id="api-getObjectsBy">
@@ -594,8 +593,11 @@ cv.addEventListener("mouseup", function (e) {
   if (window.setTool) window.setTool("select");
 }, true);</code></pre>
 
-        <h3>アニメーションに対応する</h3>
-        <p><code>addShape</code> で追加した図形は自動的にキーフレームアニメーションの対象になります。<code>draw(ctx, s)</code> では <code>s.x</code>, <code>s.y</code> などが補間済みの値で渡されるため、特別な対応は不要です。</p>
+        <h3>コーディングタブに独自のブロックを追加する</h3>
+        <p>既存のトリガー/アクション（クリック・スクロール・拡大・移動…）を組み合わせた新しいブロックを追加できます。ツールボックス表示・CSS/JS生成・警告チェックは自動でついてくるので、ブロックの見た目と組み合わせ方だけを書けば十分です。詳しくは <a href="#api-registerTriggerBlock">registerTriggerBlock / registerActionBlock</a> を参照してください。</p>
+
+        <h3>追加した図形をコーディングタブで動かす</h3>
+        <p><code>addShape</code> で追加した図形は、通常の図形と同じようにコーディングタブの図形選択欄に並びます。動きを付けるのに特別な対応は不要です。</p>
       </section>
 
       <section id="checklist">
@@ -614,18 +616,13 @@ cv.addEventListener("mouseup", function (e) {
 
       <section id="samples">
         <h2>サンプルMOD</h2>
-        <p>実際に動作するMODのソースコードを読むのが一番の近道です。以下のサンプルがリポジトリに含まれています。</p>
-        <div class="feature-list">
-          <article class="feature-item"><h3><code>mods/sample_shape/</code></h3><p>カスタム図形 + ツールの実装例。クイックスタートで説明した最小構成そのままの例です。</p></article>
-          <article class="feature-item"><h3><code>mods/star_shape/</code></h3><p>実際に動作する星形MOD。<code>registerShapeType</code> の実践例として参考になります。</p></article>
-          <article class="feature-item"><h3><code>mods/neon_brush/</code></h3><p><code>registerBrush</code> を使ったカスタムブラシの実装例です。</p></article>
-        </div>
-        <a href="https://github.com/dog7dog/Magic-Paint.js_Docs">より詳しい実装手順は、リポジトリ内の <code>docs/MOD_DEVELOPMENT_GUIDE.md</code> もあわせて参照してください。</a>
+        <p>サンプルMODは同梱していません。このページの「クイックスタート」と「よくあるパターン」に載せたコード例が、そのまま動く出発点になります。</p>
+        <p><a href="MOD_DEVELOPMENT_GUIDE.md">MOD_DEVELOPMENT_GUIDE.md</a> にも同じ手順を掲載しています。</p>
       </section>
     </main>
   </div>
 
-  <footer><div class="footer-inner">Magic Paint Documentation</div></footer>
+  <footer><div class="footer-inner">WEBAnimationMaker Documentation</div></footer>
 
   <script>
     // サイドバーTOCのスクロールスパイ（現在表示中のセクションをハイライト）

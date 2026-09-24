@@ -1,19 +1,20 @@
 # MOD 開発ガイド
 
-このガイドではカスタム図形とツールを持つ MOD をゼロから作る手順を説明します。  
-完成したサンプルは [`mods/sample_shape/`](../mods/sample_shape/) を参照してください。
+このガイドではカスタム図形とツールを持つ MOD をゼロから作る手順を説明します。
+サンプルMODは同梱していないため、下記のコードをそのまま出発点にしてください。
 
 ---
 
 ## ステップ 1: フォルダを作る
 
 ```
-mods/
-└ my_mod/          ← MOD の ID と同じ名前にする
-    ├ mod.json
-    └ main.js
+my_mod/
+├ mod.json
+└ main.js
 ```
 
+最終的にこのフォルダの中身を **ZIPファイルにまとめて**配布・インストールします
+（`mods/` のようなアプリ内フォルダは使いません）。
 MOD ID はアルファベット・数字・アンダースコアのみ使えます。
 
 ---
@@ -25,8 +26,6 @@ MOD ID はアルファベット・数字・アンダースコアのみ使えま�
   "id": "my_mod",
   "name": "My MOD",
   "version": "1.0.0",
-  "level": 1,
-  "enabled": true,
   "description": "最初の MOD です。",
   "scripts": ["main.js"],
   "styles": []
@@ -35,13 +34,16 @@ MOD ID はアルファベット・数字・アンダースコアのみ使えま�
 
 | フィールド | 説明 |
 |---|---|
-| `id` | システム内でユニークな識別子。`mods/` 内のフォルダ名と一致させる |
-| `name` | Mods パネルや設定に表示される名前 |
+| `id` | システム内でユニークな識別子。`registerMod()` に渡す `id` と一致させる |
+| `name` | MOD一覧に表示される名前 |
 | `version` | セマンティックバージョン |
-| `level` | 権限レベル（現在は `1` 固定） |
-| `enabled` | `false` にするとサーバーが読み込まない |
-| `scripts` | 読み込む JS ファイルのリスト（実行順） |
-| `styles` | 読み込む CSS ファイルのリスト |
+| `description` | MOD一覧に表示される説明文 |
+| `scripts` | 読み込む JS ファイルのリスト（実行順。省略時は `main.js`） |
+| `styles` | 読み込む CSS ファイルのリスト（省略可） |
+
+ファイル名は `mod.json` / `manifest.json` のどちらでも認識されます。
+`level` / `enabled` フィールドは受け付けはしますが、現在は読まれません
+（詳細は [MOD_SDK.md](./MOD_SDK.md) を参照）。
 
 ---
 
@@ -50,7 +52,7 @@ MOD ID はアルファベット・数字・アンダースコアのみ使えま�
 ```js
 (function () {
   const api = window.AnimationApp;
-  if (!api) return;          // Magic Paint 以外の環境対策
+  if (!api) return;          // WEBAnimationMaker以外の環境対策
 
   // ── 登録 ────────────────────────────────────────────────
   api.registerMod({
@@ -146,22 +148,30 @@ MOD ID はアルファベット・数字・アンダースコアのみ使えま�
 
 ## ステップ 5: ツールや図形を登録する
 
-`registerShapeType` → `registerTool` の順で登録するのが安全です。  
+`registerShapeType` → `registerTool` の順で登録するのが安全です。
 両方とも `api.registerMod()` の後に呼んでください。
 
 複数の図形タイプや複数のツールを登録することもできます。
 
 ---
 
-## ステップ 6: Magic Paint で有効化する
+## ステップ 6: ZIPにまとめてインストールする
 
-1. Magic Paint を起動します。
-2. 上部バーの「Mods」ボタンをクリックします。
-3. 作成した MOD の名前が一覧に出ていれば認識されています。
-4. 有効化して「適用」をクリックすると右パネルにボタンが追加されます。
+```bash
+cd my_mod
+zip -X -r ../my_mod.zip mod.json main.js
+```
 
-認識されない場合は `/api/mods` をブラウザで開いてレスポンスを確認してください。  
-`mod.json` の JSON が壊れているとサーバーが無視することがあります。
+1. WEBAnimationMaker を起動します。
+2. ツールバーの「MOD」（パズルのアイコン）→「MODをインストール」から、
+   作った ZIP を選びます。
+3. セキュリティ確認ダイアログで「インストール」を押します。
+4. MOD一覧に名前が出て、右パネルにボタンが追加されていれば認識されています。
+
+うまく読み込まれない場合は、ブラウザの開発者ツールのコンソールに
+`[MOD loaded]` のログが出ているか確認してください。`mod.json` のJSONが
+壊れている、または `id`/`scripts` が抜けていると、インストール時にエラー
+メッセージが表示されます。
 
 ---
 
@@ -213,19 +223,44 @@ api.registerFileMenuItem({
 });
 ```
 
-### アニメーションに対応する
+### コーディングタブに独自のブロックを追加する
 
-`addShape` で追加した図形は自動的にキーフレームアニメーションの対象になります。  
-`draw(ctx, s)` では `s.x`, `s.y` などが補間済みの値で渡されるため、特別な対応は不要です。
+既存のトリガー/アクション（クリック・スクロール・拡大・移動…）を組み合わせた
+新しいブロックを追加できます。ツールボックス表示・CSS/JS生成・警告チェックは
+自動でついてくるので、ブロックの見た目と組み合わせ方だけを書けば十分です。
+
+```js
+api.registerActionBlock("mod_glitch", {
+  action: "skew",                                  // 既存のアクション種別のどれか
+  parts: [{ el: "TARGET_EL" }, "にグリッチをかける"],
+  toParams: (block) => ({ dx: 20, dy: -10 })
+});
+
+api.registerTriggerBlock("mod_when_double_tap", {
+  trigger: "dblclick",                             // 既存のトリガー種別のどれか
+  toggleMode: "toggle",
+  parts: [{ el: "TRIGGER_EL" }, "をダブルタップしたら"]
+});
+```
+
+詳しい仕様・対応する種別の一覧は
+[MOD_API_REFERENCE.md](./MOD_API_REFERENCE.md#registertriggerblocktype-spec--registeractionblocktype-spec)
+を参照してください。
+
+### 追加した図形をコーディングタブで動かす
+
+`addShape()` で追加した図形は、通常の図形と同じようにコーディングタブの
+図形選択欄に並びます。動きを付けるのに特別な対応は不要です。
 
 ---
 
 ## チェックリスト
 
-- [ ] `mod.json` の `id` がフォルダ名と一致している
+- [ ] `mod.json` の `id` と `registerMod()` に渡す `id` が一致している
 - [ ] `main.js` が即時関数 `(function(){ ... })()` で囲まれている
 - [ ] `api` の存在確認 (`if (!api) return`) がある
 - [ ] `registerMod()` が最初に呼ばれている
 - [ ] `draw()` 内で `ctx.save()` / `ctx.restore()` している
 - [ ] `getBounds()` が正しいバウンディングボックスを返している
 - [ ] マウスイベントで `e.preventDefault()` + `e.stopImmediatePropagation()` している
+- [ ] 独自ブロックの `trigger` / `action` は、既存の対応種別のどれかにしている

@@ -219,11 +219,16 @@ docs/images/screenshot.png
 
 ---
 
-## 🌐 Three.js (WebGL)
+## 🌐 Three.js (WebGL) 連携API
 
-- WebGL描画用のキャンバスを併設
-- Three.jsオブジェクトをレイヤーとして扱える
-- MOD（`mods/webgl_threejs`）から利用
+- WebGL描画用のキャンバス（`#cv-three`）を併設
+- `addObject()` で追加したオブジェクトを、2Dの図形と同じレイヤーパネルで
+  表示/ロック/並び替えできる
+- `registerThreeRenderer()` で、レイヤーの表示・ロック状態の変化をWebGL側へ通知できる
+
+> Three.js本体は同梱していません。実際にWebGLで描画するMODを別途用意（インストール）
+> することで連携します。以前同梱していたサンプルMOD（`webgl_threejs`）は
+> 削除済みで、現時点では標準では動きません。
 
 ---
 
@@ -285,17 +290,18 @@ WEBAnimationMakerはMODに対応しています。
 MODはZIPファイルをローカルからインストールして使います
 （ツールバーの「MOD」→「MODをインストール」）。
 インストールしたMODはブラウザ内に保存され、次回以降も読み込まれます。
+アンインストールすると、確認ののちページが再読み込みされます。
 
-同梱のサンプルMODは `mods/` にZIPで置いてあります。
+サンプルMODは同梱していません。作り方は下記の MOD SDK を参照してください。
 
 ### MOD API
 
 - createLayer()
 - registerTool()
 - registerBrush()
-- registerShape()
-- addObject()
-- registerRenderer()
+- registerShapeType()
+- addShape()
+- registerThreeRenderer()
 - registerMod()
 - **registerTriggerBlock() / registerActionBlock()** — コーディングタブに独自の
   トリガー・アクションブロックを追加します。既存の種別（クリック・スクロール・
@@ -312,7 +318,6 @@ MODはZIPファイルをローカルからインストールして使います
 - [概要](docs/overview.html) / [チュートリアル](docs/tutorial.html) / [APIリファレンス](docs/api.html)
 - API Reference（`docs/MOD_API_REFERENCE.md`）
 - 開発ガイド（`docs/MOD_DEVELOPMENT_GUIDE.md`）
-- サンプルMOD（`mods/webgl_threejs`）
 
 ---
 
@@ -330,7 +335,6 @@ AppCore/
 ├── mod/          ... MOD API・ローダー
 └── ui/           ... ツールバー・パネル・テキストエディタ
 
-mods/       ... 同梱サンプルMOD
 docs/       ... MOD SDK ドキュメント
 tools/      ... 開発用スクリプト（アセット圧縮など）
 index.html

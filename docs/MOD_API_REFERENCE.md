@@ -1,6 +1,6 @@
 # MOD API Reference
 
-`window.AnimationApp` が Magic Paint の公開 API です。  
+`window.AnimationApp` が WEBAnimationMaker の公開 API です。  
 MOD の `main.js` 内で `const api = window.AnimationApp;` として参照します。
 
 ---
@@ -368,7 +368,7 @@ const bounds = api.getBounds(shape);    // → { x, y, w, h }
 const center = api.getCenter(shape);    // → { x, y }
 
 const snapshot = api.getSceneSnapshot();
-// → { width, height, bg, totalDur, looping, fps, shapes[] }
+// → { width, height, bg, fps, shapes[] }
 ```
 
 ---

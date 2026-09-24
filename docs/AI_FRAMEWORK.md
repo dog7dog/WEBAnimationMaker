@@ -1,9 +1,13 @@
-# Magic Paint AI Framework
+# WEBAnimationMaker AI Framework
 
-Magic Paint にAIチャット機能を統合するフレームワークです。
-自然言語で指示すると、AIが Canvas API / Three.js / Magic Paint内部API のコードを生成し、
+WEBAnimationMaker にAIチャット機能を統合するフレームワークです。
+自然言語で指示すると、AIが Canvas API / Three.js / アプリ内部API のコードを生成し、
 プレビュー確認後にレイヤー適用・MOD化・エディタ送りができます。
 キャンバスのスクリーンショットを添付して「添削して」も可能です（Vision対応）。
+
+> 内部のシステムプロンプト（`AI_SYSTEM_PROMPT`）はまだ「Magic Paint」という
+> 旧アプリ名でAIに自己紹介させています。動作に支障はありませんが、
+> ブランド名としては古いままです。
 
 **サーバーは不要です。** 以前はFlask（`ai_api.py`）が各社APIとの中継をしていましたが、
 静的サイト化に合わせてブラウザから直接リクエストする形に移行しました。
@@ -42,7 +46,7 @@ AppCore/ai/
 - APIキー登録・削除（マスク表示）・接続テスト
 - モデル選択 + カスタムモデル名の直接入力
 - temperature（創造性）スライダー
-- **再生成**ボタン / **クイックアクション**チップ（星空・花火・雪・炎・波・パーティクル・3D 等）
+- **再生成**ボタン / **クイックアクション**チップ（星空・花火・雪・炎・波・パーティクル・ドット網・3D）
 
 ### Vision（画像理解）
 - 📷 キャンバスのスクリーンショットをワンタップ添付 → 「これ添削して」
@@ -144,8 +148,9 @@ await AIClient.chat('openai', [
 - キーは画面表示では常にマスクされ、APIのエラー本文に混ざっていた場合も `***` に置換します
 - `mpAiLogs` にもキーは記録しません（統計は文字数・回数・時間のみ）
 - 生成コードは**即実行しません**。必ず「プレビュー」「適用」操作を経由
-- 危険ワード（`fetch` / `localStorage` / `document.cookie` / `eval` / `new Function` /
-  `import` / `WebSocket` / `indexedDB` 等）を含むコードは実行前に警告
+- 危険ワード（`fetch` / `XMLHttpRequest` / `localStorage` / `sessionStorage` /
+  `document.cookie` / `eval(` / `new Function` / `importScripts` / `import(` /
+  `WebSocket` / `indexedDB` / `navigator.sendBeacon`）を含むコードは実行前に警告
 - MODインストールは ID を `^[a-z0-9_]{1,40}$` に制限、固定ファイル名
   （mod.json / main.js / style.css）のみ
 - 添付画像は image/* のみ・サイズ上限あり

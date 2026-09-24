@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Magic Paintの概要と主な機能">
-  <title>概要 - Magic Paint Docs</title>
+  <meta name="description" content="WEBAnimationMakerの概要と主な機能">
+  <title>概要 - WEBAnimationMaker Docs</title>
   <link rel="stylesheet" href="docs.css">
 </head>
 <body>
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="overview.html">Magic Paint Docs</a>
+      <a class="brand" href="overview.html">WEBAnimationMaker Docs</a>
       <nav class="tabs" aria-label="ドキュメント">
         <a class="active" href="overview.html" aria-current="page">概要</a>
         <a href="tutorial.html">チュートリアル</a>
@@ -22,23 +22,35 @@
 
   <main>
     <h1 class="page-title">概要</h1>
-    <p class="lead">Magic Paintは、ブラウザ上で描画、アニメーション、JavaScript編集、MOD、AI支援を扱える制作ツールです。</p>
+    <p class="lead">WEBAnimationMakerは、ブラウザ上で「動きのあるWebページ」を作れる制作ツールです。図形を配置し、ブロックを組んでインタラクションを設定すると、そのまま動くHTML・CSS・JavaScriptとして書き出せます。</p>
 
     <section>
-      <h2>Magic Paintについて</h2>
-      <p>図形やブラシで作品を作り、タイムラインで動きを付け、HTML・PNG・JavaScriptなどへ書き出せます。</p>
-      <p>通常の描画機能に加えて、MODによる拡張やAIアシスタントによるコード生成にも対応しています。</p>
+      <h2>WEBAnimationMakerについて</h2>
+      <p>図形やテキストをキャンバスに配置し、「クリックしたら拡大する」「スクロールで見えたらフェードする」のようなインタラクションをブロックで組み立てます。プレビューで動いているものと書き出されるものは同じコードなので、「ツール上では動いたのにコピーしたら動かない」が起きません。</p>
+      <p>サーバーは不要で、<code>index.html</code> を開くだけで動きます。通常の描画機能に加えて、MODによる拡張やAIアシスタントによるコード生成にも対応しています。</p>
+    </section>
+
+    <section>
+      <h2>4つのタブ</h2>
+      <p>画面上部のタブで、作業する場所を切り替えます。デザイン → コーディング → キャンバスで確認 → 書き出し、が基本の流れです。</p>
+      <div class="feature-list">
+        <article class="feature-item"><h3>デザイン</h3><p>図形・テキスト・画像を配置し、色や角度などを編集します。</p></article>
+        <article class="feature-item"><h3>コーディング</h3><p>Blocklyのブロックで、トリガー→アクションのインタラクションを組み立てます。</p></article>
+        <article class="feature-item"><h3>テキストエディタ</h3><p>生成されたコードを見たり、Canvas API / Three.js のJSを直接書いて実行できます。</p></article>
+        <article class="feature-item"><h3>キャンバス</h3><p>生成されたCSS/JSが実DOMでそのまま動くプレビュー。再生バーで途中まで進めて確認できます。</p></article>
+      </div>
     </section>
 
     <section>
       <h2>主な機能</h2>
       <div class="feature-list">
-        <article class="feature-item"><h3>描画</h3><p>図形、線、ペン、ブラシ、消しゴムを使用できます。</p></article>
-        <article class="feature-item"><h3>アニメーション</h3><p>キーフレーム、パス、回転、FPSを編集できます。</p></article>
+        <article class="feature-item"><h3>デザイン</h3><p>四角形・円・三角形・多角形・直線・テキスト・画像、ペン/ブラシ/消しゴムでの描画に対応します。</p></article>
+        <article class="feature-item"><h3>インタラクション</h3><p>クリック・ホバー・スクロール・キー入力など13種類のトリガーと、拡大・移動・回転・変形など33種類のアクションブロックを組み合わせます。</p></article>
+        <article class="feature-item"><h3>ページの高さ</h3><p>キャンバス下端をドラッグして縦長のページを作れます。1ページごとに吸い付くスクロールや、画面に固定する要素にも対応します。</p></article>
         <article class="feature-item"><h3>レイヤー</h3><p>並び替え、表示、ロック、フォルダ分けに対応します。</p></article>
-        <article class="feature-item"><h3>コード編集</h3><p>Canvas APIやThree.jsのコードを編集・実行できます。</p></article>
-        <article class="feature-item"><h3>MOD</h3><p>ZIP形式のMODから図形、ブラシ、UIなどを追加できます。</p></article>
-        <article class="feature-item"><h3>AIアシスタント</h3><p>自然言語からCanvas APIやThree.jsコードを生成できます。</p></article>
+        <article class="feature-item"><h3>書き出し</h3><p>そのまま動くHTML、PNG、プロジェクトファイル(.mlc)として書き出せます。</p></article>
+        <article class="feature-item"><h3>MOD</h3><p>ZIP形式のMODから図形・ブラシ・コーディングブロック・UIなどを追加できます。</p></article>
+        <article class="feature-item"><h3>AIアシスタント</h3><p>自然言語からCanvas APIやThree.jsのコードを生成できます（4プロバイダーに対応）。</p></article>
       </div>
     </section>
 
@@ -47,11 +59,12 @@
       <ul>
         <li>最新版のGoogle Chrome、Microsoft Edge、Firefox</li>
         <li>JavaScriptとIndexedDBが有効な環境</li>
-        <li>一部のWebGL機能には対応GPUが必要です</li>
+        <li>MODのZIPインストールやAI機能は、<code>file://</code> で直接開くと動かないため、
+          <code>python3 -m http.server</code> などローカルサーバー経由で開くことを推奨します</li>
       </ul>
     </section>
   </main>
 
-  <footer><div class="footer-inner">Magic Paint Documentation</div></footer>
+  <footer><div class="footer-inner">WEBAnimationMaker Documentation</div></footer>
 </body>
 </html>

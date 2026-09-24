@@ -1,6 +1,7 @@
-# Magic Paint MOD SDK
+# WEBAnimationMaker MOD SDK
 
-Magic Paint は `window.AnimationApp` を通じて外部 MOD からキャンバス・レイヤー・ツールを拡張できます。
+WEBAnimationMaker は `window.AnimationApp` を通じて外部 MOD からキャンバス・レイヤー・
+コーディングタブを拡張できます。
 
 ---
 
@@ -11,21 +12,23 @@ Magic Paint は `window.AnimationApp` を通じて外部 MOD からキャンバ�
 | **カスタム図形** | 独自の描画ロジックを持つ図形タイプを追加 |
 | **カスタムツール** | 右パネルにツールボタンを追加し、マウスイベントを乗っ取る |
 | **カスタムブラシ** | ストローク描画を完全にコントロールするブラシを追加 |
+| **コーディングブロック** | コーディングタブ（Blockly）に独自のトリガー・アクションブロックを追加 |
 | **カスタム UI** | top / right / bottom / left / editor-top エリアに HTML パネルを追加 |
-| **ファイルメニュー** | 「File」メニューに独自の書き出し・読み込み項目を追加 |
-| **Three.js 統合** | WebGL レンダラーを 2D レイヤーと同じ管理下に置く |
-| **シーン読み取り** | shapes / layers / アニメーション情報を取得して外部ツールと連携 |
+| **ファイルメニュー** | 「ファイル」メニューに独自の書き出し・読み込み項目を追加 |
+| **Three.js 統合** | WebGL レンダラーを 2D レイヤーと同じ管理下に置く（レンダラー自体はMOD側で用意） |
+| **シーン読み取り** | shapes / layers / インタラクション情報を取得して外部ツールと連携 |
 
 ---
 
 ## MOD の構成
 
+MOD は **ZIPファイル1つ**として配布・インストールします。ZIPの中身は次のとおりです。
+
 ```
-mods/
-└ my_mod/
-    ├ mod.json    ← 必須。メタデータと読み込むファイルのリスト
-    ├ main.js     ← エントリポイント
-    └ style.css   ← オプション
+my_mod.zip
+├ mod.json    ← 必須。メタデータと読み込むファイルのリスト（manifest.json でも可）
+├ main.js     ← エントリポイント
+└ style.css   ← オプション
 ```
 
 ### mod.json の最小構成
@@ -35,15 +38,16 @@ mods/
   "id": "my_mod",
   "name": "My MOD",
   "version": "1.0.0",
-  "level": 1,
-  "enabled": true,
   "description": "説明",
   "scripts": ["main.js"],
   "styles": []
 }
 ```
 
-`level` は将来の権限管理用フィールドです（現在は `1` 固定）。
+`scripts` を省略すると `main.js` が読み込まれます。`level` フィールドは
+MOD一覧に表示されるだけの飾りで、権限制御には使われていません。
+`enabled` フィールドは古いサーバー配布時代の名残で、現在は読まれません
+（インストールしたMODは常に有効です。無効化したい場合はアンインストールします）。
 
 ### main.js の最小構成
 
@@ -69,20 +73,26 @@ mods/
 
 ## 読み込みの仕組み
 
-1. Magic Paint 起動時に `/api/mods` から MOD 一覧を取得します。
-2. `enabled: true` の MOD の `scripts` を `<script>` タグで動的に読み込みます。
-3. 各 `main.js` が実行され、`api.registerMod()` が呼ばれた時点でシステムに登録されます。
+1. `mod.json`（または `manifest.json`）と `main.js` などをZIPにまとめる
+2. ツールバーの「MOD」→「MODをインストール」からZIPを選ぶ
+3. セキュリティ確認ダイアログで「インストール」を押す
+4. ZIPの中身がブラウザの IndexedDB に保存され、`main.js` が実行される
+5. 次回以降の起動時も、IndexedDBに保存されたMODが自動で読み込まれる
 
-MOD の有効/無効は「Mods」メニューから切り替えられます。
+インストール済みMODは「MOD一覧」からアンインストールできます。
+MODが追加したブロック・図形・UIなどを個別に取り消す仕組みは無いため、
+アンインストール後は確認をはさんでページが自動的に再読み込みされます。
 
 ---
 
 ## 保存データへの影響
 
-`addShape()` で追加した図形は `.mlc` プロジェクトファイルに保存されます。  
-再読み込み時にその MOD が有効でないと、図形タイプが未登録のまま読み込まれます（データは失われません）。
+`addShape()` で追加した図形は `.mlc` プロジェクトファイルに保存されます。
+再読み込み時にその MOD がインストールされていないと、図形タイプが未登録のまま
+読み込まれます（データは失われません）。
 
-保存データに MOD の識別子が記録されるため、必要な MOD が不足している場合は Magic Paint が警告を出します。
+保存データに MOD の識別子が記録されるため、必要な MOD が不足している場合は
+警告が表示されます。
 
 ---
 
@@ -90,9 +100,7 @@ MOD の有効/無効は「Mods」メニューから切り替えられます。
 
 - [MOD_API_REFERENCE.md](./MOD_API_REFERENCE.md) — 全 API の仕様
 - [MOD_DEVELOPMENT_GUIDE.md](./MOD_DEVELOPMENT_GUIDE.md) — 実装手順
+- [api.html](./api.html) — 同内容をブラウザで読めるドキュメントサイト
 
-## サンプル MOD
-
-- [`mods/sample_shape/`](../mods/sample_shape/) — カスタム図形 + ツールの実装例
-- [`mods/star_shape/`](../mods/star_shape/) — 実際に動作する星形 MOD
-- [`mods/neon_brush/`](../mods/neon_brush/) — カスタムブラシの実装例
+サンプルMODは同梱していません。上記のリファレンスと開発ガイドに、
+実装例のコードを掲載しています。
