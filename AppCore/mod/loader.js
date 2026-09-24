@@ -329,8 +329,16 @@ async function uninstallZipMod(id) {
     const idx = LoadedZipMods.findIndex(m => m.id === id);
     if (idx !== -1) LoadedZipMods.splice(idx, 1);
     await _idbDelete(id);
-    setStatus(`MOD「${id}」をアンインストールしました`);
+    setStatus(`MOD「${id}」をアンインストールしました。再読み込みします…`);
     if (document.getElementById('mod-modal')) showModsModal();
+
+    // MODが足したブロック(registerTriggerBlock/registerActionBlock)・図形・
+    // ツール・ブラシ・UIパネルなどは、都度きれいに取り消す仕組みを持たない
+    // （DOMへの直接追加やBlockly側のグローバルテーブルへの登録が入り混じっており、
+    // 逆再生が難しいため）。中途半端に残らないよう、ページごと再読み込みして
+    // まっさらな状態からやり直す。IndexedDBからは既に削除済みなので、
+    // 再読み込み後にこのMODが再度読み込まれることはない。
+    setTimeout(() => location.reload(), 600);
   } catch (e) {
     console.error('[ZIP MOD uninstall]', e);
     setStatus('アンインストール失敗: ' + e.message);
@@ -426,7 +434,7 @@ function showModsModal() {
       e.stopPropagation();
       const id = btn.dataset.zipId;
       if (!id) return;
-      if (!confirm(`MOD「${id}」をアンインストールしますか？`)) return;
+      if (!confirm(`MOD「${id}」をアンインストールしますか？\n（この操作の後、ページが再読み込みされます）`)) return;
       await uninstallZipMod(id);
     });
   });
