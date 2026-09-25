@@ -69,7 +69,7 @@ function mpBuildToolbar() {
   document.getElementById('mp-eyedropper-btn').onclick = () => { call('mpStartEyedropper')(); closeToolsMenu(); };
   document.getElementById('mp-cmd-btn').onclick = () => { call('mpOpenPalette')(); closeToolsMenu(); };
   document.getElementById('mp-help-btn').onclick = () => {
-    window.open('https://lovesick-gray-hyuga-9557.ssl-lolipop.jp/public_html/docs/overview.html', '_blank', 'noopener');
+    window.open('docs/overview.html', '_blank', 'noopener');
     closeToolsMenu();
   };
 
