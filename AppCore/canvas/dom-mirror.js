@@ -162,15 +162,20 @@ function syncDomMirror() {
   // 横がはみ出す場合だけ縮小する。縦は長いページを作れるので基準にしない
   // （高さにも合わせると、縦長のページが極端に小さく表示されてしまう）。
   // はみ出す分はスクロールして見る。
+  //
+  // 縮小には transform: scale() ではなく zoom を使う。transform は
+  // 祖先要素にスタッキングコンテキスト/コンテイニングブロックを作ってしまい、
+  // 「画面に貼り付く」(position: sticky) の子要素が正しく貼り付かなくなる
+  // （スクロールしても追従せず画面外へ流れて行ってしまう）。zoom はレイアウト
+  // そのものを縮めるので sticky が壊れず、場所取りぶんの高さ調整も不要になる。
   const wrap = stage.parentElement;
   if (wrap) {
     const availW = wrap.clientWidth - 32;
     const k = Math.min(1, availW / (docW || 1280));
-    stage.style.transform = k < 1 ? 'scale(' + k.toFixed(4) + ')' : '';
-    stage.style.transformOrigin = 'top center';
-    // 縮小しても「場所取り」は元の大きさのままなので、余る分を詰めて
-    // スクロールできる範囲を見た目に合わせる
-    stage.style.marginBottom = k < 1 ? Math.round(-(1 - k) * (docH || 720)) + 'px' : '';
+    stage.style.zoom = k < 1 ? String(k) : '';
+    stage.style.transform = '';
+    stage.style.transformOrigin = '';
+    stage.style.marginBottom = '';
   }
 
   // ノードを作り直したのでリスナーも失われている。プレビュー中なら貼り直す。
