@@ -36,6 +36,38 @@ function aiCompile(code) {
   return new Function('ctx', 'canvas', 'width', 'height', 'api', 't', '"use strict";\n' + code);
 }
 
+// ── ai-codeへ渡すapiの「状態を作る」呼び出しを、図形ごとに最初の1回だけに絞る ──
+//   ai-codeのdraw()は毎フレーム呼ばれ続ける前提（GSAPのアニメーションで
+//   セットアップをループの外に書くのと同じ感覚で、AIも「api.addShapeで
+//   1個置いてからctxで動かす」のようなコードを書くことがある）。
+//   ガード無しで毎フレーム api.addShape() 等を素通しすると、呼ぶたびに
+//   図形が増え続けてタブがフリーズする（実際にヘッドレスブラウザで
+//   1秒あたり数百個ペースで増殖することを確認した）。
+//   図形1個につき最初の1回だけ本物のapiを渡し、以降は同じ形の
+//   「何もしないapi」に差し替えることで、意図した「最初の1回」の
+//   セットアップは動かしつつ暴走だけを防ぐ。
+const AI_ONE_SHOT_API_METHODS = [
+  'addShape', 'addObject', 'createLayer', 'removeObject', 'updateObject',
+  'registerShapeType', 'registerBrush', 'registerTool', 'registerUI',
+  'registerFileMenuItem', 'registerTriggerBlock', 'registerActionBlock', 'registerMod'
+];
+
+function _aiGatedApiFor(shape, api) {
+  if (!api) return api;
+  if (!shape._apiFired) {
+    shape._apiFired = true;
+    return api;
+  }
+  if (!shape._apiNoop) {
+    const noop = Object.create(api);
+    AI_ONE_SHOT_API_METHODS.forEach(m => {
+      if (typeof api[m] === 'function') noop[m] = () => undefined;
+    });
+    shape._apiNoop = noop;
+  }
+  return shape._apiNoop;
+}
+
 // ── ai-code カスタム図形の登録 ────────────────────────────────
 (function registerAiCodeShape() {
   const api = window.AnimationApp;
@@ -56,7 +88,7 @@ function aiCompile(code) {
         ctx2.globalAlpha = (s.opa == null ? 100 : s.opa) / 100;
         // タイムライン(animT)は廃止したので、ページ表示からの経過秒数で動かす
         const t = (typeof mpElapsedSeconds === 'function') ? mpElapsedSeconds() : 0;
-        s._fn(ctx2, cv, cv.width, cv.height, window.AnimationApp, t);
+        s._fn(ctx2, cv, cv.width, cv.height, _aiGatedApiFor(s, window.AnimationApp), t);
       } catch (e) {
         if (!s._err) {
           s._err = e.message;
@@ -115,7 +147,7 @@ function _aiRunOnMirrorCanvas(canvasEl, s, api, t) {
   const ctx2 = canvasEl.getContext('2d');
   ctx2.save();
   try {
-    s._fn(ctx2, canvasEl, canvasEl.width, canvasEl.height, api, t);
+    s._fn(ctx2, canvasEl, canvasEl.width, canvasEl.height, _aiGatedApiFor(s, api), t);
   } catch (e) {
     s._fn = null;
   }
