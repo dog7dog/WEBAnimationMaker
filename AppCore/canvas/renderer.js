@@ -184,7 +184,12 @@ function drawShape(s, dc) {
       const renderer = window.AnimationApp?.customRenderers?.[s.type];
 
       if (renderer && renderer.draw) {
-        renderer.draw(dc, s);
+        // MOD/AIコードが登録したdraw()は、こちらの管理下に無い任意のコード。
+        // ここで例外が漏れると呼び出し元のforEachが止まり、この図形より後の
+        // 図形やハンドルが一切描かれない「キャンバス全体が固まる」事故になる
+        // ため、1個の図形の描画失敗がそこだけで収まるようにする。
+        try { renderer.draw(dc, s); }
+        catch (e) { console.error('[shape draw error]', s.type, e); }
       }
 
       break;
