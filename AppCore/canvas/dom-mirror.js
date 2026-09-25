@@ -33,7 +33,14 @@ function buildMirrorElementHtml(s, i, origin) {
 
   let content = '';
 
-  if (shapeUsesInnerSvg(s)) {
+  if (s.type === 'ai-code') {
+    // AIが生成した任意のCanvas 2D描画コードはSVGに変換できないので、
+    // 専用の<canvas>を差し込み、JS側(ai_apply.js / site_export.js)から
+    // 継続的に描き直す。位置/大きさは他の図形と同じく外側divがCSSで持つ。
+    const b = getBounds(s);
+    content = '<canvas class="mlc-ai-canvas" data-ai-shape-id="' + safeCssIdent(s.id || ('s' + i))
+      + '" width="' + Math.max(1, Math.round(b.w)) + '" height="' + Math.max(1, Math.round(b.h)) + '"></canvas>';
+  } else if (shapeUsesInnerSvg(s)) {
     // div+CSSで表せない図形は、外側divの矩形にぴったり合わせた<svg>で描く。
     // 内側SVGにはクラスを付けない（Trigger/Actionの対象は常に外側のdiv）。
     const b = getBounds(s);

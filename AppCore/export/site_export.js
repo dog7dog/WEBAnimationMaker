@@ -6,6 +6,50 @@
 //   「Magic Paintでは動いたのにコピーしたら動かない」が起きない。
 // ══════════════════════════════════════════════════════════════
 
+// AIが生成したCanvas 2D描画コード(type:'ai-code')は、dom-mirror.jsが
+// 図形ごとに差し込む <canvas class="mlc-ai-canvas"> へ向けて、自己完結した
+// ランタイムをJSとして埋め込む。SVG/CSSでは表現できない任意の描画コードなので、
+// 書き出したページでもここだけは実際にJSを動かして描く必要がある。
+function buildAiCodeRuntimeJs() {
+  const list = (typeof shapes !== 'undefined' ? shapes : [])
+    .filter(s => s && s.type === 'ai-code' && !s.hidden && s.code);
+  if (!list.length) return '';
+
+  const entries = list.map(s => {
+    const id = typeof safeCssIdent === 'function' ? safeCssIdent(s.id || '') : String(s.id || '');
+    // </script> がそのまま出ると、HTMLパーサがそこで<script>ブロックを
+    // 閉じてしまう（JSON文字列の中でも関係なく反応する）。無効化しておく。
+    const codeJson = JSON.stringify(s.code).replace(/<\/script/gi, '<\\/script');
+    return '    { id: ' + JSON.stringify(id) + ', code: ' + codeJson + ' }';
+  }).join(',\n');
+
+  return '// ── AIコード（Canvas 2D描画） ──\n'
+    + '(function () {\n'
+    + '  var items = [\n' + entries + '\n  ];\n'
+    + '  var compiled = {};\n'
+    + '  var start = performance.now();\n'
+    + '  function run() {\n'
+    + '    var t = (performance.now() - start) / 1000;\n'
+    + '    items.forEach(function (it) {\n'
+    + '      var el = document.querySelector(\'.mlc-ai-canvas[data-ai-shape-id="\' + it.id + \'"]\');\n'
+    + '      if (!el) return;\n'
+    + '      if (compiled[it.id] === undefined) {\n'
+    + '        try { compiled[it.id] = new Function("ctx", "canvas", "width", "height", "api", "t", \'"use strict";\\n\' + it.code); }\n'
+    + '        catch (e) { compiled[it.id] = null; }\n'
+    + '      }\n'
+    + '      if (!compiled[it.id]) return;\n'
+    + '      var ctx = el.getContext("2d");\n'
+    + '      ctx.save();\n'
+    + '      try { compiled[it.id](ctx, el, el.width, el.height, window.AnimationApp || null, t); }\n'
+    + '      catch (e) { /* 実行時エラーは黙って無視し、次のフレームへ */ }\n'
+    + '      ctx.restore();\n'
+    + '    });\n'
+    + '    requestAnimationFrame(run);\n'
+    + '  }\n'
+    + '  requestAnimationFrame(run);\n'
+    + '})();\n';
+}
+
 function buildSiteParts() {
   // 「変形」「軌道」は図形の今の位置から差分を出している。書き出す直前に
   // ブロックからルールを作り直して、最新の配置を反映する
@@ -14,8 +58,10 @@ function buildSiteParts() {
 
   const shapesCss = typeof buildMirrorStageCss === 'function' ? buildMirrorStageCss() : '';
   const bodyHtml = typeof buildMirrorStageHtml === 'function' ? buildMirrorStageHtml() : '';
-  const { css: interactionCss, js } =
+  const { css: interactionCss, js: interactionJs } =
     typeof generateInteractionCode === 'function' ? generateInteractionCode() : { css: '', js: '' };
+  const aiCodeJs = buildAiCodeRuntimeJs();
+  const js = [interactionJs, aiCodeJs].filter(s => s && s.trim()).join('\n\n');
 
   const stageCss =
     '#mlc-stage {\n'

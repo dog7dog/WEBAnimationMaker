@@ -101,6 +101,44 @@ function _aiAnimTick() {
 }
 requestAnimationFrame(_aiAnimTick);
 
+// ── ai-code をキャンバスタブ（DOM/CSSミラー）でも動かす ─────────
+//   ミラーはCSS/SVGだけで組み立てているが、ai-codeは任意のCanvas 2D
+//   描画コードなのでSVGへ変換できない。dom-mirror.js側で図形ごとに
+//   専用の<canvas class="mlc-ai-canvas">を差し込んであるので、ここから
+//   継続的に描き直す（書き出したページ側は site_export.js が同じ仕組みを
+//   自己完結した形で埋め込む）。
+function _aiRunOnMirrorCanvas(canvasEl, s, api, t) {
+  if (!s._fn) {
+    try { s._fn = aiCompile(s.code || ''); }
+    catch (e) { s._fn = null; return; }
+  }
+  const ctx2 = canvasEl.getContext('2d');
+  ctx2.save();
+  try {
+    s._fn(ctx2, canvasEl, canvasEl.width, canvasEl.height, api, t);
+  } catch (e) {
+    s._fn = null;
+  }
+  ctx2.restore();
+}
+
+function _aiMirrorTick() {
+  if (typeof isInteractionPreviewActive === 'function' && isInteractionPreviewActive()) {
+    const canvases = document.querySelectorAll('#mlc-stage .mlc-ai-canvas');
+    if (canvases.length && Array.isArray(shapes)) {
+      const t = (typeof mpElapsedSeconds === 'function') ? mpElapsedSeconds() : 0;
+      const api = window.AnimationApp;
+      canvases.forEach(canvasEl => {
+        const id = canvasEl.dataset.aiShapeId;
+        const s = shapes.find(sh => sh && !sh.hidden && safeCssIdent(sh.id || '') === id);
+        if (s) _aiRunOnMirrorCanvas(canvasEl, s, api, t);
+      });
+    }
+  }
+  requestAnimationFrame(_aiMirrorTick);
+}
+requestAnimationFrame(_aiMirrorTick);
+
 // ── プレビュー（コード編集可能） ──────────────────────────────
 let _aiPreviewRAF = null;
 
