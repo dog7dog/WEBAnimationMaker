@@ -39,21 +39,15 @@
         </button>
         <div id="file-menu">
           <div class="fm-item" onclick="newProject()"><i class="ti ti-file-plus"></i>新規</div>
-          <div class="fm-item" onclick="openCanvasSizeModal({mode:'resize'})"><i class="ti ti-dimensions"></i>キャンバスサイズ</div>
+          <div class="fm-item" onclick="openProject()"><i class="ti ti-folder-open"></i>開く</div>
           <div class="fm-item" onclick="saveProject()"><i class="ti ti-device-floppy"></i>保存<span
               class="fm-kbd">⌘S</span></div>
-          <div class="fm-item" onclick="exportMLC()">
-            <i class="ti ti-file-export"></i>
-            .mlc書き出し
-          </div>
+          <div class="fm-sep"></div>
+          <div class="fm-item" onclick="openCanvasSizeModal({mode:'resize'})"><i class="ti ti-dimensions"></i>キャンバスサイズ</div>
+          <div class="fm-sep"></div>
           <div class="fm-item" onclick="openImageFilePicker()"><i class="ti ti-photo-plus"></i>画像を読み込み</div>
           <div class="fm-item" onclick="copySelectedImageToClipboard()"><i class="ti ti-copy"></i>画像をコピー<span
               class="fm-kbd">⌘⇧C</span></div>
-          <div class="fm-item" onclick="openMLC()">
-            <i class="ti ti-file-import"></i>
-            <span>.mlcを読み込み</span>
-          </div>
-          <div class="fm-item" onclick="openProject()"><i class="ti ti-folder-open"></i>開く</div>
           <div class="fm-sep"></div>
           <div class="fm-item" onclick="exportSiteHtml()"><i class="ti ti-brand-html5"></i>HTML書き出し</div>
           <div class="fm-item" onclick="exportPNG()"><i class="ti ti-photo"></i>PNG書き出し</div>

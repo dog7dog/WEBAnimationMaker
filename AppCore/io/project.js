@@ -119,25 +119,6 @@ function saveProject() {
   toast('ti-device-floppy', '.mlcとして保存しました');
 }
 
-function exportMLC() {
-  const name = document.getElementById('proj-name').textContent.replace('.mlc', '') || '無題';
-
-  const blob = new Blob([
-    JSON.stringify({ name, data: serializeProject() }, null, 2)
-  ], { type: 'application/json' });
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name + '.mlc';
-  a.click();
-
-  URL.revokeObjectURL(url);
-
-  toast('ti-file-export', '.mlcを書き出しました');
-}
-
 function openMLC() {
   const input = document.createElement('input');
 

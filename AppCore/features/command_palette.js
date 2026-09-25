@@ -9,7 +9,6 @@ function mpCommands() {
     { icon: 'ti-file-plus', name: '新規プロジェクト', keys: '', run: call('newProject') },
     { icon: 'ti-device-floppy', name: '保存', keys: '⌘S', run: call('saveProject') },
     { icon: 'ti-folder-open', name: 'プロジェクトを開く', keys: '', run: call('openProject') },
-    { icon: 'ti-file-export', name: '.mlc書き出し', keys: '', run: call('exportMLC') },
     { icon: 'ti-photo', name: 'PNG書き出し', keys: '', run: call('exportPNG') },
     { icon: 'ti-external-link', name: 'プレビュー（別タブ）', keys: '⌘P', run: call('openSitePreview') },
     { icon: 'ti-file-export', name: 'HTML書き出し', keys: '', run: call('exportSiteHtml') },
