@@ -470,7 +470,11 @@ function aiBuildCodeBlock(block) {
   btns.appendChild(mk('ti-eye', 'プレビュー', '', () => aiPreviewCode(block.code)));
   btns.appendChild(mk('ti-check', '適用', 'accent', () => aiApplyCode(block.code)));
   if (isMod) btns.appendChild(mk('ti-puzzle', 'MOD化', '', () => aiInstallAsMod(block.code)));
-  btns.appendChild(mk('ti-file-code', 'エディタへ', '', () => aiSendToEditor(block.code)));
+  btns.appendChild(mk('ti-file-code', 'エディタへ', '', () => {
+    // CSS/HTMLブロックも、正しい拡張子で送ってエディタの色分けを効かせる
+    const ext = block.lang === 'css' ? '.css' : (block.lang === 'html' ? '.html' : '.js');
+    aiSendToEditor(block.code, 'ai-' + Date.now().toString(36) + ext);
+  }));
   btns.appendChild(mk('ti-copy', 'コピー', '', () => {
     navigator.clipboard?.writeText(block.code)
       .then(() => toast('ti-check', 'コピーしました'))

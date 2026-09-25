@@ -255,6 +255,7 @@ function aiApplyCode(code, opts) {
       const fn = aiCompile(code);
       fn(ctx, cv, cv.width, cv.height, api, 0);
       redraw();
+      _aiWriteEditorFile(code, 'ai-run-' + Date.now().toString(36) + '.js');
       toast('ti-sparkles', 'AIコードを実行しました');
       setStatus('AIコード実行');
     } catch (e) {
@@ -267,32 +268,46 @@ function aiApplyCode(code, opts) {
   catch (e) { toast('ti-alert-triangle', '構文エラー: ' + e.message); return; }
 
   saveState();
-  shapes.push({
+  const shape = {
     type: 'ai-code', name: 'AIコード', code,
     x: 0, y: 0, w: cv.width, h: cv.height,
     color, sw, opa: 100, dash: '0', fill: false,
     keyframes: [], hidden: false,
     layerId: getDrawableActiveLayerId()
-  });
-  selected = shapes[shapes.length - 1];
+  };
+  shapes.push(shape);
+  if (typeof ensureShapeIds === 'function') ensureShapeIds();
+  selected = shape;
   syncAll();
+  // 適用した内容をテキストエディタのファイル一覧にも自動で反映する。
+  // 「エディタへ」を別途押さなくても、あとから何を適用したか確認できるように。
+  _aiWriteEditorFile(code, 'ai-code-' + (shape.id || Date.now().toString(36)) + '.js');
   toast('ti-sparkles', 'AIコードをレイヤーに追加しました');
   setStatus('AIコード適用');
 }
 
-// ── JSエディタへコードを送る ──────────────────────────────────
-function aiSendToEditor(code, suggestedName) {
-  if (typeof window.__jeUserFiles === 'undefined') {
-    toast('ti-alert-triangle', 'エディタが初期化されていません。テキストエディタタブを一度開いてください');
-    return;
-  }
+// ── テキストエディタのファイル一覧へ書き込む（タブ移動なし） ────
+//   aiApplyCode() からの自動反映と、aiSendToEditor() の明示的な
+//   「エディタへ」ボタンの両方がこれを使う。
+function _aiWriteEditorFile(code, suggestedName) {
+  if (typeof window.__jeUserFiles === 'undefined') return null;
   let name = suggestedName || ('ai-' + Date.now().toString(36) + '.js');
-  let i = 1;
-  while (window.__jeUserFiles[name] !== undefined) {
-    name = (suggestedName || 'ai').replace(/\.js$/, '') + '-' + (i++) + '.js';
+  if (window.__jeUserFiles[name] !== undefined && typeof uniqueJeFileName === 'function') {
+    name = uniqueJeFileName(name);
   }
   window.__jeUserFiles[name] = code;
   if (typeof persistJeUserFiles === 'function') persistJeUserFiles();
+  if (typeof renderJeFiles === 'function') renderJeFiles();
+  return name;
+}
+
+// ── JSエディタへコードを送る（明示的なボタン。タブを開いて表示する） ──
+function aiSendToEditor(code, suggestedName) {
+  const name = _aiWriteEditorFile(code, suggestedName);
+  if (!name) {
+    toast('ti-alert-triangle', 'エディタが初期化されていません。テキストエディタタブを一度開いてください');
+    return;
+  }
   // エディタタブへ切替
   document.getElementById('tab-editor')?.click();
   setTimeout(() => {
