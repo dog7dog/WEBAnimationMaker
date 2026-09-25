@@ -35,7 +35,6 @@ function mpCommands() {
     { icon: 'ti-layout-align-middle', name: '垂直中央揃え', keys: '', run: call('mpAlign', 'cy') },
     { icon: 'ti-grid-4x4', name: 'グリッド表示切替', keys: '⌘G', run: call('mpToggleGrid') },
     { icon: 'ti-magnet', name: 'スナップ切替', keys: '', run: call('mpToggleSnap') },
-    { icon: 'ti-ghost', name: 'オニオンスキン切替', keys: '', run: call('mpToggleOnion') },
     { icon: 'ti-zoom-in', name: 'ズームイン', keys: '⌘+', run: call('mpZoomIn') },
     { icon: 'ti-zoom-out', name: 'ズームアウト', keys: '⌘-', run: call('mpZoomOut') },
     { icon: 'ti-zoom-reset', name: 'ズームをリセット', keys: '⌘0', run: call('mpZoomReset') },

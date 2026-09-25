@@ -19,7 +19,6 @@ function mpBuildToolbar() {
         <div class="mp-menu-label">表示</div>
         <div class="fm-item" id="mp-grid-btn"><i class="ti ti-grid-4x4"></i>グリッド表示<span class="fm-kbd">G</span></div>
         <div class="fm-item" id="mp-snap-btn"><i class="ti ti-magnet"></i>スナップ</div>
-        <div class="fm-item" id="mp-onion-btn"><i class="ti ti-ghost"></i>オニオンスキン</div>
 
         <div class="fm-sep"></div>
         <div class="mp-menu-label">整列</div>
@@ -49,7 +48,6 @@ function mpBuildToolbar() {
 
         <div class="fm-sep"></div>
         <div class="fm-item" id="mp-eyedropper-btn"><i class="ti ti-color-picker"></i>スポイト<span class="fm-kbd">I</span></div>
-        <div class="fm-item" id="mp-export-btn"><i class="ti ti-movie"></i>メディア書き出し</div>
 
         <div class="fm-sep"></div>
         <div class="fm-item" id="mp-cmd-btn"><i class="ti ti-command"></i>コマンドパレット<span class="fm-kbd">⌘K</span></div>
@@ -68,9 +66,7 @@ function mpBuildToolbar() {
 
   document.getElementById('mp-grid-btn').onclick = () => { call('mpToggleGrid')(); };
   document.getElementById('mp-snap-btn').onclick = () => { call('mpToggleSnap')(); };
-  document.getElementById('mp-onion-btn').onclick = () => { call('mpToggleOnion')(); };
   document.getElementById('mp-eyedropper-btn').onclick = () => { call('mpStartEyedropper')(); closeToolsMenu(); };
-  document.getElementById('mp-export-btn').onclick = () => { call('mpOpenExportDialog')(); closeToolsMenu(); };
   document.getElementById('mp-cmd-btn').onclick = () => { call('mpOpenPalette')(); closeToolsMenu(); };
   document.getElementById('mp-help-btn').onclick = () => {
     window.open('https://lovesick-gray-hyuga-9557.ssl-lolipop.jp/public_html/docs/overview.html', '_blank', 'noopener');
@@ -118,13 +114,6 @@ function mpAddAutosaveMenuItem() {
   };
   menu.appendChild(sep);
   menu.appendChild(item);
-
-  // メディア書き出しも File メニューに
-  const exp = document.createElement('div');
-  exp.className = 'fm-item';
-  exp.innerHTML = '<i class="ti ti-movie"></i>動画/連番書き出し';
-  exp.onclick = () => { if (window.mpOpenExportDialog) window.mpOpenExportDialog(); };
-  menu.appendChild(exp);
 }
 
 if (document.readyState === 'loading') {
