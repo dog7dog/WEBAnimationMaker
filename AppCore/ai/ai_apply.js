@@ -77,6 +77,30 @@ function aiCompile(code) {
   });
 })();
 
+// ── ai-code の継続的な再描画 ──────────────────────────────────
+//   デザインタブは編集操作をきっかけに redraw() する「イベント駆動」で、
+//   タイムライン廃止に伴い常時のアニメーションループを持たない。
+//   ai-codeは t（経過秒数）を使って動く前提（AIのシステムプロンプトでも
+//   そう案内している）なので、これが無いと生成した動きが完全に静止して
+//   見えてしまう。
+//
+//   ai-code図形が追加された瞬間だけでなく、.mlc読み込みや⌘Z/⌘⇧Zで
+//   後から現れることもあるため、個別のタイミングを狙って起こすのではなく、
+//   ずっと動かしておいて毎フレーム「今どうか」を見るだけにする
+//   （無い間の判定はshapes配列を舐めるだけなので、ほぼ無視できるコスト）。
+function _aiAnimTick() {
+  const hasAnimated = Array.isArray(shapes) && shapes.some(s => s && s.type === 'ai-code' && !s.hidden);
+  if (hasAnimated) {
+    const workspace = document.getElementById('workspace');
+    // デザインタブを表示している間だけ描き直す（他のタブでの無駄な再描画を避ける）
+    if (workspace && workspace.style.display !== 'none' && typeof redraw === 'function') {
+      redraw();
+    }
+  }
+  requestAnimationFrame(_aiAnimTick);
+}
+requestAnimationFrame(_aiAnimTick);
+
 // ── プレビュー（コード編集可能） ──────────────────────────────
 let _aiPreviewRAF = null;
 
